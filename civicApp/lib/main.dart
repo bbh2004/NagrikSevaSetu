@@ -8,7 +8,19 @@ import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  try {
+    // Add a print statement to verify execution reaches here
+    print("====== ATTEMPTING FIREBASE INIT ======");
+    await Firebase.initializeApp();
+    print("====== FIREBASE INIT SUCCESS ======");
+  } catch (e, stacktrace) {
+    // This will force any hidden errors to print to your terminal
+    print("====== FIREBASE INIT FAILED ======");
+    print(e.toString());
+    print(stacktrace);
+  }
+
   runApp(const CivicApp());
 }
 
@@ -21,26 +33,27 @@ class CivicApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Nagarik Seva Setu',
       theme: _buildModernTheme(),
-      home: Wrapper()
+      home: Wrapper(),
     );
   }
 
   ThemeData _buildModernTheme() {
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF6366F1),
-        brightness: Brightness.light,
-      ).copyWith(
-        primary: const Color(0xFF6366F1),
-        secondary: const Color(0xFF8B5CF6),
-        surface: const Color(0xFFFAFAFA),
-        background: const Color(0xFFFFFFFF),
-        onPrimary: Colors.white,
-        onSecondary: Colors.white,
-        onSurface: const Color(0xFF1F2937),
-        onBackground: const Color(0xFF1F2937),
-      ),
+      colorScheme:
+          ColorScheme.fromSeed(
+            seedColor: const Color(0xFF6366F1),
+            brightness: Brightness.light,
+          ).copyWith(
+            primary: const Color(0xFF6366F1),
+            secondary: const Color(0xFF8B5CF6),
+            surface: const Color(0xFFFAFAFA),
+            background: const Color(0xFFFFFFFF),
+            onPrimary: Colors.white,
+            onSecondary: Colors.white,
+            onSurface: const Color(0xFF1F2937),
+            onBackground: const Color(0xFF1F2937),
+          ),
       fontFamily: 'SF Pro Display',
       textTheme: const TextTheme(
         displayLarge: TextStyle(
@@ -58,10 +71,7 @@ class CivicApp extends StatelessWidget {
           fontWeight: FontWeight.w600,
           letterSpacing: -0.2,
         ),
-        headlineMedium: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w500,
-        ),
+        headlineMedium: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
         bodyLarge: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w400,
@@ -113,7 +123,10 @@ class CivicApp extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
       ),
     );
   }
