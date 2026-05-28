@@ -620,7 +620,13 @@ class _HomeScreenState extends State<HomeScreen>
                     context,
                     icon: Icons.map_outlined,
                     title: 'Map View',
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      Navigator.pop(context); // Close drawer
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MapScreen()),
+                      );
+                    },
                   ),
                   _buildDrawerItem(
                     context,

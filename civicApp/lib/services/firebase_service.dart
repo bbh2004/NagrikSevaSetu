@@ -13,8 +13,8 @@ class FirebaseService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // --- Cloudinary Config ---
-  static const String _cloudName = 'dqpgshpir';
-  static const String _uploadPreset = 'civic_complaints';
+  static const String _cloudName = 'dmecx8pcz';
+  static const String _uploadPreset = 'civic_sih2025';
 
   // Upload image to Cloudinary
   Future<String> uploadImageToCloudinary(File file) async {
@@ -22,7 +22,9 @@ class FirebaseService {
       throw Exception('Cloudinary not configured in FirebaseService.');
     }
 
-    final uri = Uri.parse('https://api.cloudinary.com/v1_1/$_cloudName/image/upload');
+    final uri = Uri.parse(
+      'https://api.cloudinary.com/v1_1/$_cloudName/image/upload',
+    );
     final mimeType = lookupMimeType(file.path) ?? 'image/jpeg';
     final parts = mimeType.split('/');
 
@@ -43,7 +45,9 @@ class FirebaseService {
       final Map<String, dynamic> body = json.decode(response.body);
       return body['secure_url'] as String;
     } else {
-      throw Exception('Cloudinary upload failed: ${response.statusCode} ${response.body}');
+      throw Exception(
+        'Cloudinary upload failed: ${response.statusCode} ${response.body}',
+      );
     }
   }
 
@@ -59,7 +63,10 @@ class FirebaseService {
         .collection('complaints')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => Complaint.fromMap(d.id, d.data())).toList());
+        .map(
+          (snap) =>
+              snap.docs.map((d) => Complaint.fromMap(d.id, d.data())).toList(),
+        );
   }
 
   // Update complaint status + automatic notification
@@ -68,29 +75,40 @@ class FirebaseService {
 
     final docSnapshot = await _fire.collection('complaints').doc(id).get();
     final complaintData = docSnapshot.data();
-    if (complaintData != null && complaintData['userId'] != null && complaintData['userId'] != '') {
+    if (complaintData != null &&
+        complaintData['userId'] != null &&
+        complaintData['userId'] != '') {
       final userId = complaintData['userId'];
-      final message = 'Your complaint "${complaintData['category'] ?? 'Unknown'}" status has been updated to "$status".';
+      final message =
+          'Your complaint "${complaintData['category'] ?? 'Unknown'}" status has been updated to "$status".';
 
       // Automatic notification creation
-      await _fire.collection('notifications').add({
-        'userId': userId,
-        'complaintId': id,
-        'type': 'status_update',
-        'message': message,
-        'createdAt': DateTime.now().toIso8601String(),
-        'read': false,
-      }).then((docRef) {
-        print('Notification created with ID: ${docRef.id}');
-      }).catchError((error) {
-        print('Failed to create notification: $error');
-      });
+      await _fire
+          .collection('notifications')
+          .add({
+            'userId': userId,
+            'complaintId': id,
+            'type': 'status_update',
+            'message': message,
+            'createdAt': DateTime.now().toIso8601String(),
+            'read': false,
+          })
+          .then((docRef) {
+            print('Notification created with ID: ${docRef.id}');
+          })
+          .catchError((error) {
+            print('Failed to create notification: $error');
+          });
     }
   }
 
   // Toggle upvote + automatic notification
   Future<void> toggleUpvote(String id, String userId) async {
-    final ref = _fire.collection('complaints').doc(id).collection('upvotes').doc(userId);
+    final ref = _fire
+        .collection('complaints')
+        .doc(id)
+        .collection('upvotes')
+        .doc(userId);
     final doc = await ref.get();
 
     final complaintDoc = await _fire.collection('complaints').doc(id).get();
@@ -109,19 +127,24 @@ class FirebaseService {
 
       // Automatic notification for upvote
       if (complaintOwnerId != '' && complaintOwnerId != userId) {
-        final message = 'Someone upvoted your complaint "${complaintData?['category'] ?? 'Unknown'}".';
-        await _fire.collection('notifications').add({
-          'userId': complaintOwnerId,
-          'complaintId': id,
-          'type': 'upvote',
-          'message': message,
-          'createdAt': DateTime.now().toIso8601String(),
-          'read': false,
-        }).then((docRef) {
-          print('Upvote notification created: ${docRef.id}');
-        }).catchError((error) {
-          print('Failed to create upvote notification: $error');
-        });
+        final message =
+            'Someone upvoted your complaint "${complaintData?['category'] ?? 'Unknown'}".';
+        await _fire
+            .collection('notifications')
+            .add({
+              'userId': complaintOwnerId,
+              'complaintId': id,
+              'type': 'upvote',
+              'message': message,
+              'createdAt': DateTime.now().toIso8601String(),
+              'read': false,
+            })
+            .then((docRef) {
+              print('Upvote notification created: ${docRef.id}');
+            })
+            .catchError((error) {
+              print('Failed to create upvote notification: $error');
+            });
       }
     } else {
       // Remove upvote
@@ -142,16 +165,20 @@ class FirebaseService {
         .where('userId', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs.map((d) {
-      final data = d.data();
-      data['docId'] = d.id; // include docId for marking read
-      return data;
-    }).toList());
+        .map(
+          (snap) => snap.docs.map((d) {
+            final data = d.data();
+            data['docId'] = d.id; // include docId for marking read
+            return data;
+          }).toList(),
+        );
   }
 
   // Mark notification as read using docId
   Future<void> markNotificationRead(String notificationId) async {
-    await _fire.collection('notifications').doc(notificationId).update({'read': true});
+    await _fire.collection('notifications').doc(notificationId).update({
+      'read': true,
+    });
   }
 
   // Current user ID

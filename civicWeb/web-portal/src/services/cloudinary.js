@@ -3,8 +3,8 @@
 
 export async function uploadImageToCloudinary(file) {
   if (!file) throw new Error('No file provided')
-  const cloudName = 'dqpgshpir'
-  const uploadPreset = 'civic_complaints'
+  const cloudName = 'dmecx8pcz'
+  const uploadPreset = 'civic_sih2025'
   const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`
 
   const formData = new FormData()
