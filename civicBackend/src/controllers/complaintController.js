@@ -79,7 +79,8 @@ const getAllComplaints = async (req, res, next) => {
     if (status) filter.status = status;
     if (urgency) filter.urgency = urgency;
 
-    // Department staff can only see their own department's complaints
+    // Department staff can ONLY see their own department's complaints.
+    // Admins and main_officers see everything (no extra filter applied).
     if (req.dbUser.role === 'department_staff' && req.dbUser.department) {
       filter.category = req.dbUser.department;
     }
@@ -263,18 +264,18 @@ const toggleUpvote = async (req, res, next) => {
 /**
  * GET /api/complaints/stats
  * Aggregate statistics for the admin dashboard.
- * @access Private (admin, department_staff)
+ * Scopes results by department for department_staff; main_officer and admin see all.
+ * @access Private (admin, main_officer, department_staff)
  */
 const getStats = async (req, res, next) => {
   try {
-    // Build filter based on role
+    // Build filter based on role. Department staff are scoped to their category.
     const matchFilter = {};
     if (req.dbUser.role === 'department_staff' && req.dbUser.department) {
       matchFilter.category = req.dbUser.department;
     }
 
-    // MongoDB Aggregation Pipeline
-    // Think of this like SQL GROUP BY queries
+    // MongoDB Aggregation Pipeline — server-side counting (fast, no client loops needed)
     const stats = await Complaint.aggregate([
       { $match: matchFilter },
       {
@@ -284,19 +285,20 @@ const getStats = async (req, res, next) => {
           pending: { $sum: { $cond: [{ $eq: ['$status', 'Pending'] }, 1, 0] } },
           inProgress: { $sum: { $cond: [{ $eq: ['$status', 'In Progress'] }, 1, 0] } },
           resolved: { $sum: { $cond: [{ $eq: ['$status', 'Resolved'] }, 1, 0] } },
+          rejected: { $sum: { $cond: [{ $eq: ['$status', 'Rejected'] }, 1, 0] } },
           highUrgency: { $sum: { $cond: [{ $eq: ['$urgency', 'High'] }, 1, 0] } },
         },
       },
     ]);
 
-    // Count by category
+    // Count by category — used by Analytics bar chart
     const byCategory = await Complaint.aggregate([
       { $match: matchFilter },
-      { $group: { _id: '$category', count: { $sum: 1 } } },
+      { $group: { _id: '$category', count: { $sum: 1 }, resolved: { $sum: { $cond: [{ $eq: ['$status', 'Resolved'] }, 1, 0] } } } },
       { $sort: { count: -1 } },
     ]);
 
-    // Count by day for last 14 days (for chart)
+    // Count by day for last 14 days — used by Analytics line chart
     const fourteenDaysAgo = new Date();
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
 
@@ -306,19 +308,70 @@ const getStats = async (req, res, next) => {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
           count: { $sum: 1 },
+          resolved: { $sum: { $cond: [{ $eq: ['$status', 'Resolved'] }, 1, 0] } },
         },
       },
       { $sort: { _id: 1 } },
     ]);
 
+    // Status breakdown for Pie chart — pre-computed on server to avoid client-side looping
+    const totals = stats[0] || { total: 0, pending: 0, inProgress: 0, resolved: 0, rejected: 0, highUrgency: 0 };
+    const byStatus = [
+      { name: 'Pending', value: totals.pending },
+      { name: 'In Progress', value: totals.inProgress },
+      { name: 'Resolved', value: totals.resolved },
+      { name: 'Rejected', value: totals.rejected },
+    ];
+
     res.status(200).json({
       success: true,
       data: {
-        totals: stats[0] || { total: 0, pending: 0, inProgress: 0, resolved: 0, highUrgency: 0 },
+        totals,
         byCategory,
         byDay,
+        byStatus,
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/complaints/map
+ * Returns lightweight complaint data for map rendering within a viewport bounding box.
+ * Uses MongoDB $geoWithin to avoid returning the entire complaints collection.
+ *
+ * Query params: swLat, swLng, neLat, neLng (bounding box corners)
+ * Falls back to returning all non-resolved complaints with coordinates if no bbox provided.
+ *
+ * @access Private (admin, main_officer, department_staff)
+ */
+const getMapComplaints = async (req, res, next) => {
+  try {
+    const { swLat, swLng, neLat, neLng } = req.query;
+
+    const filter = { status: { $ne: 'Resolved' } };
+
+    // If viewport bounding box is provided, use geo query (fast, uses 2dsphere index)
+    if (swLat && swLng && neLat && neLng) {
+      filter.location = {
+        $geoWithin: {
+          $box: [
+            [parseFloat(swLng), parseFloat(swLat)], // SW corner [lng, lat]
+            [parseFloat(neLng), parseFloat(neLat)], // NE corner [lng, lat]
+          ],
+        },
+      };
+    }
+
+    // Return only the fields the map needs — no heavy description text
+    const complaints = await Complaint.find(filter)
+      .select('_id category status urgency location upvotes createdAt')
+      .limit(500) // Safety cap — no browser should ever render 500+ map pins at once
+      .lean();
+
+    res.status(200).json({ success: true, data: complaints });
   } catch (error) {
     next(error);
   }
@@ -332,4 +385,5 @@ module.exports = {
   updateComplaintStatus,
   toggleUpvote,
   getStats,
+  getMapComplaints,
 };

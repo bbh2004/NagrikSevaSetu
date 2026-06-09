@@ -24,6 +24,7 @@ const {
   updateComplaintStatus,
   toggleUpvote,
   getStats,
+  getMapComplaints,
 } = require('../controllers/complaintController');
 
 const { verifyFirebaseToken, requireRole } = require('../middleware/auth');
@@ -34,7 +35,11 @@ router.use(verifyFirebaseToken);
 
 // GET  /api/complaints/stats → MUST come before /:id or Express
 //      will try to match "stats" as an ID (and fail)
-router.get('/stats', requireRole('admin', 'department_staff'), getStats);
+router.get('/stats', requireRole('admin', 'main_officer', 'department_staff'), getStats);
+
+// GET  /api/complaints/map → Viewport-bounded map pins (uses $geoWithin on 2dsphere index)
+//      Must also come before /:id for the same reason as /stats
+router.get('/map', requireRole('admin', 'main_officer', 'department_staff'), getMapComplaints);
 
 // GET  /api/complaints/mine → Get logged-in user's own complaints
 router.get('/mine', getMyComplaints);
@@ -48,10 +53,10 @@ router.post('/', validate(schemas.createComplaint), createComplaint);
 // GET  /api/complaints/:id  → Get one complaint by MongoDB ID
 router.get('/:id', getComplaintById);
 
-// PATCH /api/complaints/:id/status → Update status (staff/admin only)
+// PATCH /api/complaints/:id/status → Update status (staff/admin/main_officer only)
 router.patch(
   '/:id/status',
-  requireRole('admin', 'department_staff'),
+  requireRole('admin', 'main_officer', 'department_staff'),
   validate(schemas.updateStatus),
   updateComplaintStatus
 );

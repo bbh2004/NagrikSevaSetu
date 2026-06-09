@@ -55,7 +55,10 @@ const syncUser = async (req, res, next) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        // Alias department as deptCategory for frontend compatibility.
+        // The React AuthContext reads 'deptCategory' for routing decisions.
         department: user.department,
+        deptCategory: user.department,
       },
     });
   } catch (error) {

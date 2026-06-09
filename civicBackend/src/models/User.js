@@ -54,15 +54,18 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: {
-        values: ['citizen', 'department_staff', 'admin'],
-        message: 'Role must be citizen, department_staff, or admin',
+        values: ['citizen', 'department_staff', 'admin', 'main_officer'],
+        message: 'Role must be citizen, department_staff, admin, or main_officer',
       },
       default: 'citizen',
     },
     // Only relevant for department_staff role
     department: {
       type: String,
-      enum: ['Sanitation', 'Water', 'Electrical', 'Road', 'Others', null],
+      enum: {
+        values: ['Sanitation', 'Water', 'Electrical', 'Road', 'Others', null],
+        message: 'Department must be one of: Sanitation, Water, Electrical, Road, Others',
+      },
       default: null,
     },
   },

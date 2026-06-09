@@ -1,167 +1,168 @@
+/**
+ * Analytics.jsx — Data analytics page for officers.
+ *
+ * Fixes applied:
+ *   1. Now fetches data exclusively from /api/complaints/stats (MongoDB aggregation).
+ *      REMOVED: client-side download of all complaints + JS loops to count them.
+ *   2. byDay chart now uses server-returned `count` and `resolved` fields.
+ *   3. byCategory chart uses server-returned `_id` (category name) and `count`.
+ *   4. byStatus pie chart uses server-returned `byStatus` array (pre-computed).
+ *   5. 'Others' (plural) is now used consistently from civic constants.
+ *   6. Department staff see scoped data — the API handles this server-side.
+ */
 import { useEffect, useState, useCallback } from 'react'
-import { Card, CardHeader, CardTitle, CardContent, Badge } from '../components/ui.jsx'
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui.jsx'
 import api from '../services/api'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend,
+} from 'recharts'
 import { useAuth } from '../context/AuthContext.jsx'
+import { toast } from '../utils/toast.js'
+
+const CHART_COLORS = {
+  complaints: '#3b82f6',
+  resolved:   '#10b981',
+  bar:        '#8b5cf6',
+}
+const STATUS_COLORS = ['#ef4444', '#f59e0b', '#10b981', '#94a3b8']
+
+// Recharts Tooltip custom style
+const TOOLTIP_STYLE = {
+  contentStyle: {
+    borderRadius: '8px',
+    border: 'none',
+    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+    fontSize: '13px',
+  },
+}
 
 export default function Analytics() {
-  const [data, setData] = useState({ totals: { total: 0, open: 0, inProgress: 0, resolved: 0 }, byDay: [], byDept: [], byStatus: [] })
+  const [data, setData]     = useState(null) // null means "not yet loaded"
   const [loading, setLoading] = useState(true)
   const { user } = useAuth()
 
   const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true)
-      
-      // If dept_staff, only fetch their category. Else fetch all.
-      const query = (user?.role === 'department_staff' && user?.deptCategory) 
-        ? `?category=${user.deptCategory}` 
-        : ''
-      
-      const allComplaints = await api.get(`/complaints${query}`)
-      
-      // Totals
-      const totals = allComplaints.reduce((acc, c) => {
-        acc.total += 1
-        if (c.status === 'Resolved') acc.resolved += 1
-        else if (c.status === 'In Progress') acc.inProgress += 1
-        else acc.open += 1
-        return acc
-      }, { total: 0, open: 0, inProgress: 0, resolved: 0 })
-
-      // By Department (Resolved counts)
-      const DEPARTMENTS = ['Electrical', 'Road', 'Sanitation', 'Water', 'Other']
-      const byDeptMap = new Map(DEPARTMENTS.map(d => [d, { department: d, complaints: 0 }]))
-      
-      for (const c of allComplaints) {
-        if (c.status === 'Resolved') {
-          const key = c.category || 'Other'
-          if (byDeptMap.has(key)) {
-            byDeptMap.get(key).complaints += 1
-          } else {
-            byDeptMap.set(key, { department: key, complaints: 1 })
-          }
-        }
-      }
-      const byDept = Array.from(byDeptMap.values())
-
-      // By Day for the last 14 days
-      const days = 14
-      const start = new Date()
-      start.setHours(0,0,0,0)
-      start.setDate(start.getDate() - (days - 1))
-      
-      const fmt = (d) => {
-        const y = d.getFullYear()
-        const m = `${d.getMonth()+1}`.padStart(2, '0')
-        const dd = `${d.getDate()}`.padStart(2, '0')
-        return `${y}-${m}-${dd}`
-      }
-      
-      const byDayMap = new Map()
-      for (let i = 0; i < days; i++) {
-        const d = new Date(start)
-        d.setDate(start.getDate() + i)
-        byDayMap.set(fmt(d), { day: fmt(d), complaints: 0, resolved: 0 })
-      }
-      
-      for (const c of allComplaints) {
-        const d = new Date(c.createdAt)
-        d.setHours(0,0,0,0)
-        const key = fmt(d)
-        const bucket = byDayMap.get(key)
-        if (bucket) {
-          bucket.complaints += 1
-          if (c.status === 'Resolved') bucket.resolved += 1
-        }
-      }
-      const byDay = Array.from(byDayMap.values())
-
-      // Status distribution for Pie
-      const byStatus = [
-        { name: 'Pending', value: totals.open },
-        { name: 'In Progress', value: totals.inProgress },
-        { name: 'Resolved', value: totals.resolved },
-      ]
-
-      setData({ totals, byDay, byDept, byStatus })
+      // Single API call — the backend does all aggregation server-side.
+      // For department_staff the backend automatically scopes results to their category.
+      const statsData = await api.get('/complaints/stats')
+      setData(statsData)
     } catch (error) {
-      console.error("Failed to fetch analytics:", error)
+      console.error('[Analytics] fetchAnalytics failed:', error)
+      toast.error('Failed to load analytics data.')
     } finally {
       setLoading(false)
     }
-  }, [user])
+  }, [])
 
   useEffect(() => {
     fetchAnalytics()
   }, [fetchAnalytics])
 
-  const COLORS = ['#ef4444', '#f59e0b', '#10b981']
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64 text-muted-foreground">
+        <div className="text-center space-y-2">
+          <div className="animate-spin text-3xl">📊</div>
+          <div>Loading Analytics…</div>
+        </div>
+      </div>
+    )
+  }
 
-  if (loading) return <div className="p-8 text-center text-muted-foreground">Loading Analytics...</div>
+  if (!data) return null
+
+  const { totals, byDay, byCategory, byStatus } = data
+
+  // Normalise byDay: the backend returns { _id: '2026-06-09', count: N, resolved: M }
+  // Recharts needs flat objects with readable keys
+  const dailyChartData = byDay.map(d => ({
+    day:        d._id,
+    'New Reports': d.count,
+    'Resolved': d.resolved,
+  }))
+
+  // Normalise byCategory: backend returns { _id: 'Road', count: N, resolved: M }
+  const categoryChartData = byCategory.map(d => ({
+    department:  d._id || 'Unknown',
+    'Complaints': d.count,
+    'Resolved':  d.resolved,
+  }))
+
+  const kpiCards = [
+    { label: 'Total Complaints', value: totals.total,       color: '' },
+    { label: 'Pending',          value: totals.pending,     color: 'text-red-600' },
+    { label: 'In Progress',      value: totals.inProgress,  color: 'text-yellow-600' },
+    { label: 'Resolved',         value: totals.resolved,    color: 'text-green-600' },
+  ]
+
+  const isAdmin = !user || user.role === 'admin' || user.role === 'main_officer'
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Total Complaints</CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl font-bold">{data.totals.total}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Pending</CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl font-bold text-red-600">{data.totals.open}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">In Progress</CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl font-bold text-yellow-600">{data.totals.inProgress}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Resolved</CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl font-bold text-green-600">{data.totals.resolved}</CardContent>
-        </Card>
+      <div>
+        <h2 className="text-2xl font-bold">Analytics</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          {isAdmin ? 'City-wide complaint overview' : `${user?.deptCategory} department overview`}
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* ── KPI Cards ──────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {kpiCards.map(({ label, value, color }) => (
+          <Card key={label}>
+            <CardHeader><CardTitle className="text-sm text-muted-foreground">{label}</CardTitle></CardHeader>
+            <CardContent className={`text-3xl font-bold ${color}`}>{value}</CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* ── Daily Trend + Department Bar Chart ─────────── */}
+      <div className={`grid grid-cols-1 ${isAdmin ? 'lg:grid-cols-2' : ''} gap-6`}>
+        {/* Daily Trend Line Chart */}
         <Card>
-          <CardHeader>
-            <CardTitle>Daily Trend (Last 14 Days)</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>Daily Trend (Last 14 Days)</CardTitle></CardHeader>
           <CardContent className="h-[360px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data.byDay} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <LineChart data={dailyChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <XAxis
+                  dataKey="day"
+                  axisLine={false} tickLine={false}
+                  tick={{ fontSize: 11, fill: '#64748b' }}
+                  tickFormatter={v => v.slice(5)} // Show only MM-DD
+                />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
+                <Tooltip {...TOOLTIP_STYLE} />
                 <Legend iconType="circle" />
-                <Line type="monotone" dataKey="complaints" name="New Reports" stroke="#3b82f6" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="resolved" name="Resolved" stroke="#10b981" strokeWidth={3} dot={false} />
+                <Line type="monotone" dataKey="New Reports" stroke={CHART_COLORS.complaints} strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="Resolved"   stroke={CHART_COLORS.resolved}   strokeWidth={2.5} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {(!user || user.role === 'admin') && (
+        {/* Department Breakdown Bar Chart (admin + main_officer only) */}
+        {isAdmin && (
           <Card>
-            <CardHeader>
-              <CardTitle>Resolved by Department</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Complaints by Department</CardTitle></CardHeader>
             <CardContent className="h-[360px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.byDept} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+                <BarChart data={categoryChartData} margin={{ top: 10, right: 30, left: 0, bottom: 25 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="department" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} angle={-25} textAnchor="end" />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                  <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                  <Bar dataKey="complaints" name="Resolved Issues" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                  <XAxis
+                    dataKey="department"
+                    axisLine={false} tickLine={false}
+                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    angle={-20} textAnchor="end"
+                  />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
+                  <Tooltip {...TOOLTIP_STYLE} cursor={{ fill: '#f1f5f9' }} />
+                  <Legend iconType="circle" />
+                  <Bar dataKey="Complaints" fill={CHART_COLORS.bar}       radius={[4,4,0,0]} />
+                  <Bar dataKey="Resolved"   fill={CHART_COLORS.resolved}  radius={[4,4,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -169,19 +170,24 @@ export default function Analytics() {
         )}
       </div>
 
+      {/* ── Status Pie Chart ─────────────────────────── */}
       <Card>
-        <CardHeader>
-          <CardTitle>Status Distribution</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Status Distribution</CardTitle></CardHeader>
         <CardContent className="h-[360px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={data.byStatus} dataKey="value" nameKey="name" outerRadius={120} innerRadius={60} paddingAngle={2} label>
-                {data.byStatus.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Pie
+                data={byStatus.filter(d => d.value > 0)}
+                dataKey="value" nameKey="name"
+                outerRadius={120} innerRadius={60} paddingAngle={2}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                labelLine={false}
+              >
+                {byStatus.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill={STATUS_COLORS[index % STATUS_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+              <Tooltip {...TOOLTIP_STYLE} />
               <Legend verticalAlign="bottom" height={36} iconType="circle" />
             </PieChart>
           </ResponsiveContainer>

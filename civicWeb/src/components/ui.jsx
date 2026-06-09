@@ -14,13 +14,25 @@ export function CardContent({ className = '', children }) {
   return <div className={`p-6 pt-0 ${className}`}>{children}</div>
 }
 
-export function Button({ className = '', variant = 'default', ...props }) {
+export function Button({ className = '', variant = 'default', size = 'default', disabled = false, ...props }) {
   const variants = {
-    default: 'bg-primary text-primary-foreground hover:opacity-90',
-    outline: 'border bg-transparent hover:bg-accent',
+    default:   'bg-primary text-primary-foreground hover:opacity-90',
+    outline:   'border bg-transparent hover:bg-accent',
     secondary: 'bg-secondary text-secondary-foreground hover:opacity-90',
   }
-  return <button className={`inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition ${variants[variant]} ${className}`} {...props} />
+  const sizes = {
+    default: 'px-4 py-2 text-sm',
+    sm:      'px-2.5 py-1.5 text-xs',
+    lg:      'px-6 py-2.5 text-base',
+    icon:    'p-2',
+  }
+  return (
+    <button
+      className={`inline-flex items-center justify-center rounded-md font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant] ?? variants.default} ${sizes[size] ?? sizes.default} ${className}`}
+      disabled={disabled}
+      {...props}
+    />
+  )
 }
 
 export function Badge({ className = '', variant = 'default', children }) {
