@@ -193,38 +193,36 @@ civicProject/
 │   └── pubspec.yaml
 │
 ├── civicWeb/
-│   ├── web-portal/
-│   │   ├── public/
-│   │   │   └── vite.svg
-│   │   ├── src/
-│   │   │   ├── assets/
-│   │   │   │   └── react.svg
-│   │   │   ├── components/
-│   │   │   │   └── ui.jsx
-│   │   │   ├── context/
-│   │   │   │   └── AuthContext.jsx
-│   │   │   ├── layouts/
-│   │   │   │   └── AppLayout.jsx
-│   │   │   ├── pages/
-│   │   │   │   ├── Analytics.jsx
-│   │   │   │   ├── ComplaintDetail.jsx
-│   │   │   │   ├── Dashboard.jsx
-│   │   │   │   ├── DepartmentDashboard.jsx
-│   │   │   │   └── Departments.jsx
-│   │   │   ├── services/
-│   │   │   │   ├── cloudinary.js
-│   │   │   │   ├── firebase.js
-│   │   │   │   └── firebasePlaceholders.js
-│   │   │   ├── App.css
-│   │   │   ├── App.jsx
-│   │   │   ├── index.css
-│   │   │   └── main.jsx
-│   │   ├── package.json
-│   │   ├── package-lock.json
-│   │   ├── vite.config.js
-│   │   └── index.html
+│   ├── public/
+│   │   └── vite.svg
+│   ├── src/
+│   │   ├── assets/
+│   │   │   └── react.svg
+│   │   ├── components/
+│   │   │   └── ui.jsx
+│   │   ├── context/
+│   │   │   └── AuthContext.jsx
+│   │   ├── layouts/
+│   │   │   └── AppLayout.jsx
+│   │   ├── pages/
+│   │   │   ├── Analytics.jsx
+│   │   │   ├── ComplaintDetail.jsx
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── DepartmentDashboard.jsx
+│   │   │   └── Departments.jsx
+│   │   ├── services/
+│   │   │   ├── cloudinary.js
+│   │   │   ├── firebase.js
+│   │   │   └── firebasePlaceholders.js
+│   │   ├── App.css
+│   │   ├── App.jsx
+│   │   ├── index.css
+│   │   └── main.jsx
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── vite.config.js
+│   └── index.html
 └── README.md
-
 ```
 
 ---
@@ -241,9 +239,8 @@ civicProject/
 
 ### Mobile App Setup
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/nagrik-seva-setu.git
-cd nagrik-seva-setu/app
+# Navigate to mobile app directory
+cd civicApp
 
 # Install dependencies
 flutter pub get
@@ -255,21 +252,36 @@ flutter pub get
 flutter run
 ```
 
+### Backend API Setup
+```bash
+# Navigate to backend directory
+cd civicBackend
+
+# Install dependencies
+npm install
+
+# Configure environment
+# Copy .env.example to .env and add MongoDB/Firebase credentials
+
+# Start development server
+npm start
+```
+
 ### Web Dashboard Setup
 ```bash
 # Navigate to web directory
-cd web
+cd civicWeb
 
-# Configure Firebase
-# Update firebase-config.js with your Firebase credentials
+# Install dependencies
+npm install
 
-# Serve locally (using any local server)
-python -m http.server 8000
-# OR
-npx serve
+# Configure Firebase and API base URL in .env
+# VITE_API_BASE_URL=http://localhost:5000/api
 
-# Open browser
-# Navigate to http://localhost:8000
+# Run development server
+npm run dev
+
+# Open browser at http://localhost:5173
 ```
 
 ### Firebase Configuration

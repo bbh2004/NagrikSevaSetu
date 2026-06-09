@@ -1,20 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent, Button, Modal, Input, Label } from '../components/ui.jsx'
-import { getDepartments } from '../services/firebasePlaceholders.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNavigate } from 'react-router-dom'
 
+const DEPARTMENTS = [
+  { id: 'Electrical', name: 'Electrical' },
+  { id: 'Road', name: 'Road' },
+  { id: 'Sanitation', name: 'Sanitation' },
+  { id: 'Water', name: 'Water' },
+  { id: 'Other', name: 'Other' },
+]
+
 export default function Departments() {
-  const departments = getDepartments()
-  const { user, loginOfficer, loginDepartmentStaff } = useAuth()
+  const { user, login } = useAuth()
   const [loadingId, setLoadingId] = useState(null)
   const [loginModal, setLoginModal] = useState({ open: false, target: null })
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
   const navigate = useNavigate()
 
   const sortedDepartments = useMemo(() => {
-    const list = [...departments]
+    const list = [...DEPARTMENTS]
     // ensure Other is last
     list.sort((a,b) => a.name.localeCompare(b.name))
     const idx = list.findIndex(d => d.id === 'Other')
@@ -23,31 +30,39 @@ export default function Departments() {
       list.push(other)
     }
     return list
-  }, [departments])
+  }, [])
+
   // Redirect to active department if logged in
   useEffect(() => {
-    if (user?.role === 'department_staff' && user?.deptCategory) {
-      navigate(`/department/${user.deptCategory}`, { replace: true })
+    if (user) {
+      if (user.role === 'department_staff' && user.deptCategory) {
+        navigate(`/department/${user.deptCategory}`, { replace: true })
+      } else if (user.role === 'admin' || user.role === 'main_officer') {
+        navigate('/', { replace: true })
+      }
+      setLoginModal({ open: false, target: null })
+      setLoadingId(null)
     }
   }, [user, navigate])
 
   const startLogin = (deptId) => {
     setLoginModal({ open: true, target: deptId })
-    setUsername('')
+    setEmail(deptId === 'admin' ? 'admin@civic.gov.in' : `${deptId.toLowerCase()}@civic.gov.in`)
     setPassword('')
+    setError('')
   }
 
-  const handleLogin = async (deptId, credentials) => {
-    setLoadingId(deptId)
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    setLoadingId(loginModal.target)
+    setError('')
     try {
-      if (deptId === 'admin') {
-        await loginOfficer(credentials || { username: 'admin', password: 'admin' })
-        navigate('/departments')
-      } else {
-        await loginDepartmentStaff(deptId, credentials || { username: 'staff', password: 'staff' })
-        navigate(`/department/${deptId}`)
-      }
-    } finally {
+      await login(email, password)
+      // Do NOT navigate here. login() only starts the Firebase auth process.
+      // We must wait for the AuthContext to fetch the backend role and set `user`.
+      // Once `user` is populated, the useEffect above will redirect safely.
+    } catch (err) {
+      setError('Invalid email or password.')
       setLoadingId(null)
     }
   }
@@ -88,28 +103,30 @@ export default function Departments() {
       <Modal
         open={loginModal.open}
         onClose={() => setLoginModal({ open: false, target: null })}
-        title="Member Login"
+        title={loginModal.target === 'admin' ? "Admin Login" : `${loginModal.target} Department Login`}
         actions={
           <>
-            <Button onClick={() => { const target = loginModal.target; setLoginModal({ open: false, target: null }); handleLogin(target, { username, password }); }} disabled={!username || !password || loadingId===loginModal.target}>
+            <Button onClick={handleLogin} disabled={!email || !password || loadingId===loginModal.target}>
               {loadingId===loginModal.target ? 'Logging in...' : 'Login'}
             </Button>
             <Button variant="outline" onClick={() => setLoginModal({ open: false, target: null })}>Cancel</Button>
           </>
         }
       >
-        <div>
-          <Label htmlFor="username">Username</Label>
-          <Input id="username" type="text" value={username} onChange={e=>setUsername(e.target.value)} placeholder="yourusername" />
-        </div>
-        <div>
-          <Label htmlFor="password">Password</Label>
-          <Input id="password" type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" />
-        </div>
+        <form onSubmit={handleLogin} className="space-y-4">
+          {error && <div className="text-sm text-red-500 bg-red-50 p-2 rounded">{error}</div>}
+          <div>
+            <Label htmlFor="email">Email address</Label>
+            <Input id="email" type="email" value={email} onChange={e=>setEmail(e.target.value)} required />
+          </div>
+          <div>
+            <Label htmlFor="password">Password</Label>
+            <Input id="password" type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" required />
+          </div>
+          {/* Hidden submit button to allow Enter key to submit */}
+          <button type="submit" className="hidden" />
+        </form>
       </Modal>
     </div>
   )
 }
-
-
-

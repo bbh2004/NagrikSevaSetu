@@ -40,14 +40,22 @@ app.use(helmet());
 // The React web portal sends requests from the browser.
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-  : ['http://localhost:5173', 'http://localhost:3000'];
+  : [/^http:\/\/localhost:\d+$/];
 
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (mobile apps, Postman, curl)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+
+      const isAllowed = allowedOrigins.some((allowedOrigin) => {
+        if (allowedOrigin instanceof RegExp) {
+          return allowedOrigin.test(origin);
+        }
+        return allowedOrigin === origin;
+      });
+
+      if (isAllowed) return callback(null, true);
       callback(new Error(`CORS: Origin "${origin}" not allowed`));
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

@@ -20,7 +20,14 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route element={<AppLayout />}>
-            <Route path="/" element={<Dashboard />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "main_officer"]}>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/departments" element={<Departments />} />
             <Route
               path="/department/:deptId"
@@ -38,7 +45,14 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/analytics" element={<Analytics />} />
+            <Route
+              path="/analytics"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "main_officer", "department_staff"]}>
+                  <Analytics />
+                </ProtectedRoute>
+              }
+            />
           </Route>
         </Routes>
       </BrowserRouter>
