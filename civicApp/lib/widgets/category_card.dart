@@ -20,7 +20,6 @@ class _CategoryCardState extends State<CategoryCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
-  bool _isPressed = false;
 
   @override
   void initState() {
@@ -64,18 +63,9 @@ class _CategoryCardState extends State<CategoryCard>
     final categoryColor = _getCategoryColor();
     
     return GestureDetector(
-      onTapDown: (_) {
-        setState(() => _isPressed = true);
-        _animationController.forward();
-      },
-      onTapUp: (_) {
-        setState(() => _isPressed = false);
-        _animationController.reverse();
-      },
-      onTapCancel: () {
-        setState(() => _isPressed = false);
-        _animationController.reverse();
-      },
+      onTapDown: (_) => _animationController.forward(),
+      onTapUp: (_) => _animationController.reverse(),
+      onTapCancel: () => _animationController.reverse(),
       onTap: widget.onTap,
       child: AnimatedBuilder(
         animation: _scaleAnimation,
