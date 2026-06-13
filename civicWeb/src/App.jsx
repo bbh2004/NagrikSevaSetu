@@ -1,61 +1,117 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom'
+import { Component } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import AppLayout from './layouts/AppLayout.jsx'
 import Dashboard from './pages/Dashboard.jsx'
-import Departments from './pages/Departments.jsx'
+import Departments from './pages/Departments.jsx' // Will act as Login
 import DepartmentDashboard from './pages/DepartmentDashboard.jsx'
 import ComplaintDetail from './pages/ComplaintDetail.jsx'
 import Analytics from './pages/Analytics.jsx'
+// Placeholder imports, to be implemented
+// import AdminComplaints from './pages/AdminComplaints.jsx'
+// import DepartmentComplaints from './pages/DepartmentComplaints.jsx'
+// import Unauthorized from './pages/Unauthorized.jsx'
 
-function ProtectedRoute({ children, allowedRoles }) {
-  const { user } = useAuth()
-  if (!user) return <Navigate to="/departments" replace />
-  if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/departments" replace />
-  return children
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-screen w-full items-center justify-center bg-surface text-on-surface p-6 text-center">
+          <div className="max-w-md space-y-4">
+            <h1 className="text-3xl font-bold text-error">System Error</h1>
+            <p className="text-on-surface-variant">A component crashed. Our engineers have been notified.</p>
+            <button onClick={() => window.location.reload()} className="bg-primary text-on-primary px-4 py-2 rounded">
+              Reload Application
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function ProtectedLayout({ allowedRoles }) {
+  const { user, isAuthenticated, logout } = useAuth()
+  const { deptId } = useParams()
+  
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  
+  // Citizen guard
+  if (user.role === 'citizen') {
+    logout()
+    return <Navigate to="/unauthorized" replace />
+  }
+
+  // Role whitelist
+  if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/unauthorized" replace />
+  
+  // Department logic isolation guard
+  if (deptId && user.role === 'department_staff' && user.deptCategory !== deptId) {
+    return <Navigate to="/unauthorized" replace />
+  }
+  
+  return <Outlet />
+}
+
+function DynamicRedirect() {
+  const { user, isAuthenticated } = useAuth()
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (user.role === 'admin' || user.role === 'main_officer') return <Navigate to="/admin/dashboard" replace />
+  if (user.role === 'department_staff' && user.deptCategory) return <Navigate to={`/department/${user.deptCategory}/dashboard`} replace />
+  return <Navigate to="/login" replace />
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<AppLayout />}>
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute allowedRoles={["admin", "main_officer"]}>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/departments" element={<Departments />} />
-            <Route
-              path="/department/:deptId"
-              element={
-                <ProtectedRoute allowedRoles={["admin", "main_officer", "department_staff"]}>
-                  <DepartmentDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/complaints/:complaintId"
-              element={
-                <ProtectedRoute allowedRoles={["admin", "main_officer", "department_staff"]}>
-                  <ComplaintDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/analytics"
-              element={
-                <ProtectedRoute allowedRoles={["admin", "main_officer", "department_staff"]}>
-                  <Analytics />
-                </ProtectedRoute>
-              }
-            />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Departments />} />
+            <Route path="/unauthorized" element={
+              <div className="flex h-screen w-full items-center justify-center bg-surface">
+                <h1 className="text-3xl text-error font-bold">401 Unauthorized</h1>
+              </div>
+            } />
+            
+            <Route element={<AppLayout />}>
+              <Route path="/" element={<DynamicRedirect />} />
+
+              {/* Admin & Main Officer Routes */}
+              <Route element={<ProtectedLayout allowedRoles={["admin", "main_officer"]} />}>
+                <Route path="/admin/dashboard" element={<Dashboard />} />
+                <Route path="/admin/complaints" element={<Analytics />} /> {/* Placeholder */}
+                <Route path="/analytics" element={<Analytics />} />
+              </Route>
+
+              {/* Department Staff Routes */}
+              <Route element={<ProtectedLayout allowedRoles={["admin", "main_officer", "department_staff"]} />}>
+                <Route path="/department/:deptId/dashboard" element={<DepartmentDashboard />} />
+                <Route path="/department/:deptId/complaints" element={<Analytics />} /> {/* Placeholder */}
+              </Route>
+
+              {/* Shared Routes */}
+              <Route element={<ProtectedLayout allowedRoles={["admin", "main_officer", "department_staff"]} />}>
+                <Route path="/complaints/:complaintId" element={<ComplaintDetail />} />
+              </Route>
+            </Route>
+            
+            {/* Catch-all */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }

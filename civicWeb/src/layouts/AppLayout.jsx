@@ -1,122 +1,145 @@
-/**
- * AppLayout.jsx — Application shell with sidebar navigation.
- *
- * Fixes applied:
- *   1. Sidebar: "Departments" nav link now highlights correctly when an admin
- *      is viewing /department/:deptId (previously no link was active).
- *   2. Role: main_officer is now recognised for the Dashboard link (was missing).
- *   3. User info: Shows deptCategory below name for department_staff.
- *   4. Logout: navigates to /departments after logout (correct public fallback).
- */
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Building2, BarChart3, LogOut, Lock } from 'lucide-react'
+import { LayoutDashboard, Building2, BarChart3, LogOut, Lock, Building } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
+import { cn } from '../components/ui.jsx'
 
-/**
- * Returns the Tailwind className string for a sidebar nav link.
- * @param {boolean} isActive - from NavLink's render prop
- * @param {boolean} [forceActive] - programmatically force active state
- */
 function navClass(isActive, forceActive = false) {
   const active = isActive || forceActive
-  return `flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-accent/50 ${
-    active ? 'bg-accent font-semibold text-primary' : 'text-muted-foreground'
-  }`
+  return cn(
+    "flex items-center gap-4 px-4 py-2 rounded transition-colors font-label-md text-label-md",
+    active 
+      ? "bg-primary-container text-on-primary-container" 
+      : "text-on-surface-variant hover:bg-surface-container"
+  )
+}
+
+function mobileNavClass(isActive, forceActive = false) {
+  const active = isActive || forceActive
+  return cn(
+    "flex flex-col items-center justify-center rounded-full px-4 py-1 transition-colors",
+    active 
+      ? "bg-primary-container text-on-primary-container" 
+      : "text-on-surface-variant"
+  )
 }
 
 export default function AppLayout() {
   const navigate  = useNavigate()
   const location  = useLocation()
-  const { user, logout } = useAuth()
+  const { user, isAuthenticated, logout } = useAuth()
 
-  // An admin/main_officer on /department/:deptId is still "in" the departments section
-  const isOnDeptPage = location.pathname.startsWith('/department/')
+  const isOnDeptPage = location.pathname.startsWith('/department/') && !location.pathname.endsWith('/dashboard')
 
   const handleLogout = async () => {
     await logout()
-    navigate('/departments')
+    navigate('/login')
   }
 
   return (
-    <div className="min-h-screen grid grid-cols-[220px_1fr]">
-      {/* ── Sidebar ─────────────────────────────────── */}
-      <aside className="border-r bg-card p-3 flex flex-col shadow-sm z-10 relative">
-        {/* Logo / Brand */}
-        <div className="text-xl font-bold mb-6 mt-2 px-2 text-primary flex items-center gap-2">
-          <Building2 size={24} />
-          <span>NSS Portal</span>
+    <div className="min-h-screen bg-background font-body-md text-body-md flex flex-col">
+      {/* ── TopAppBar ─────────────────────────────────── */}
+      <header className="fixed top-0 left-0 w-full z-50 flex items-center px-4 md:px-margin-desktop h-16 bg-surface border-b border-outline-variant shadow-sm">
+        <div className="flex items-center gap-2">
+          <Building className="text-primary w-6 h-6" />
+          <h1 className="font-headline-sm text-headline-sm font-bold text-primary hidden md:block">NagrikSevaSetu</h1>
+          <h1 className="font-headline-sm text-headline-sm font-bold text-primary md:hidden">NSS</h1>
         </div>
+        <div className="ml-auto flex items-center gap-4">
+          {isAuthenticated && (
+            <div className="text-right hidden sm:block mr-4">
+              <p className="font-label-md text-label-md text-on-surface leading-none">{user.name}</p>
+              <p className="font-label-sm text-label-sm text-on-surface-variant capitalize">{user.role.replace('_', ' ')}</p>
+            </div>
+          )}
+          {isAuthenticated && (
+            <button 
+              onClick={handleLogout}
+              className="text-error hover:bg-error-container p-2 rounded-full transition-colors flex items-center gap-2 font-label-md text-label-md"
+              title="Logout"
+            >
+              <LogOut size={20} />
+            </button>
+          )}
+        </div>
+      </header>
 
-        {/* Navigation Links */}
-        <nav className="space-y-1 flex-1">
-          {/* Dashboard — only admin and main_officer */}
-          {user && (user.role === 'admin' || user.role === 'main_officer') ? (
-            <NavLink to="/" className={({ isActive }) => navClass(isActive)}>
-              <LayoutDashboard size={18} /> Dashboard
+      {/* ── Desktop Sidebar ─────────────────────────────────── */}
+      <div className="hidden md:flex fixed left-0 top-16 h-[calc(100vh-64px)] w-64 bg-surface-container-lowest border-r border-outline-variant p-6 flex-col z-40">
+        <nav className="flex flex-col gap-2 flex-1">
+          {/* Dashboard */}
+          {isAuthenticated && (user.role === 'admin' || user.role === 'main_officer') ? (
+            <NavLink to="/admin/dashboard" className={({ isActive }) => navClass(isActive)}>
+              <LayoutDashboard size={20} /> Dashboard
             </NavLink>
           ) : user?.role === 'department_staff' && user?.deptCategory ? (
             <NavLink
-              to={`/department/${user.deptCategory}`}
+              to={`/department/${user.deptCategory}/dashboard`}
               className={({ isActive }) => navClass(isActive)}
             >
-              <LayoutDashboard size={18} /> My Department
+              <LayoutDashboard size={20} /> My Department
             </NavLink>
           ) : (
-            <div className="flex items-center justify-between px-3 py-2 rounded-md text-muted-foreground/40 cursor-not-allowed select-none">
-              <div className="flex items-center gap-3"><LayoutDashboard size={18} /> Dashboard</div>
-              <Lock size={13} />
+            <div className="flex items-center justify-between px-4 py-2 rounded text-outline cursor-not-allowed select-none font-label-md text-label-md">
+              <div className="flex items-center gap-4"><LayoutDashboard size={20} /> Dashboard</div>
+              <Lock size={16} />
             </div>
           )}
 
-          {/* Departments — always visible; highlighted also when on a dept sub-page */}
-          <NavLink
-            to="/departments"
-            className={({ isActive }) => navClass(isActive, isOnDeptPage && user?.role !== 'department_staff')}
-          >
-            <Building2 size={18} /> Departments
-          </NavLink>
+          {/* Departments - Only show if unauthenticated since it's the login page now */}
+          {!isAuthenticated && (
+            <NavLink
+              to="/login"
+              className={({ isActive }) => navClass(isActive)}
+            >
+              <Building2 size={20} /> Login
+            </NavLink>
+          )}
 
-          {/* Analytics — authenticated users only */}
-          {user ? (
+          {/* Analytics */}
+          {isAuthenticated ? (
             <NavLink to="/analytics" className={({ isActive }) => navClass(isActive)}>
-              <BarChart3 size={18} /> Analytics
+              <BarChart3 size={20} /> Analytics
             </NavLink>
           ) : (
-            <div className="flex items-center justify-between px-3 py-2 rounded-md text-muted-foreground/40 cursor-not-allowed select-none">
-              <div className="flex items-center gap-3"><BarChart3 size={18} /> Analytics</div>
-              <Lock size={13} />
+            <div className="flex items-center justify-between px-4 py-2 rounded text-outline cursor-not-allowed select-none font-label-md text-label-md">
+              <div className="flex items-center gap-4"><BarChart3 size={20} /> Analytics</div>
+              <Lock size={16} />
             </div>
           )}
         </nav>
+      </div>
 
-        {/* User Info + Logout */}
-        {user ? (
-          <div className="pt-4 border-t mt-auto">
-            <div className="mb-3 px-2 text-xs text-muted-foreground flex flex-col gap-0.5">
-              <span className="font-semibold text-foreground text-sm truncate" title={user.name}>
-                {user.name}
-              </span>
-              <span className="capitalize text-muted-foreground">
-                {user.role.replace('_', ' ')}
-                {user.deptCategory && ` — ${user.deptCategory}`}
-              </span>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-border/50 bg-background hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors text-sm"
-            >
-              <LogOut size={15} /> Logout
-            </button>
-          </div>
-        ) : (
-          <div className="mt-auto px-2 py-4 text-xs text-center text-muted-foreground border-t">
-            Login required for full access
-          </div>
+      {/* ── Mobile BottomNavBar ─────────────────────────────── */}
+      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 bg-surface-container-lowest border-t border-outline-variant md:hidden">
+        {isAuthenticated && (user.role === 'admin' || user.role === 'main_officer') ? (
+          <NavLink to="/admin/dashboard" className={({ isActive }) => mobileNavClass(isActive)}>
+            <LayoutDashboard size={24} />
+            <span className="font-label-sm text-label-sm mt-1">Dash</span>
+          </NavLink>
+        ) : user?.role === 'department_staff' && user?.deptCategory ? (
+          <NavLink to={`/department/${user.deptCategory}/dashboard`} className={({ isActive }) => mobileNavClass(isActive)}>
+            <LayoutDashboard size={24} />
+            <span className="font-label-sm text-label-sm mt-1">Dept</span>
+          </NavLink>
+        ) : null}
+
+        {!isAuthenticated && (
+          <NavLink to="/login" className={({ isActive }) => mobileNavClass(isActive)}>
+            <Building2 size={24} />
+            <span className="font-label-sm text-label-sm mt-1">Login</span>
+          </NavLink>
         )}
-      </aside>
+
+        {isAuthenticated && (
+          <NavLink to="/analytics" className={({ isActive }) => mobileNavClass(isActive)}>
+            <BarChart3 size={24} />
+            <span className="font-label-sm text-label-sm mt-1">Stats</span>
+          </NavLink>
+        )}
+      </nav>
 
       {/* ── Main Content Area ────────────────────────── */}
-      <main className="p-6 overflow-auto">
+      <main className="pt-24 pb-24 md:pb-8 px-4 md:px-margin-desktop md:ml-64 max-w-container-max mx-auto flex-1">
         <Outlet />
       </main>
     </div>

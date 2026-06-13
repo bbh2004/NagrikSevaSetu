@@ -69,7 +69,7 @@ async function seed() {
       const existingMongoUser = await User.findOne({ firebaseUid: firebaseUser.uid });
       if (existingMongoUser) {
         existingMongoUser.role = u.role;
-        existingMongoUser.deptCategory = u.deptCategory;
+        existingMongoUser.department = u.deptCategory;
         await existingMongoUser.save();
         console.log(`✅ Updated MongoDB User: ${u.email}`);
       } else {
@@ -78,7 +78,7 @@ async function seed() {
           name: u.name,
           email: u.email,
           role: u.role,
-          deptCategory: u.deptCategory,
+          department: u.deptCategory,
         });
         console.log(`✅ Created MongoDB User: ${u.email}`);
       }

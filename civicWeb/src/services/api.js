@@ -15,6 +15,7 @@
  */
 import axios from 'axios'
 import { auth } from './firebase'
+import { signOut as firebaseSignOut } from 'firebase/auth'
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
@@ -58,7 +59,17 @@ api.interceptors.response.use(
     // Fallback: return as-is (health check, etc.)
     return body
   },
-  (error) => {
+  async (error) => {
+    // Intercept 401 Unauthorized to force a secure logout
+    if (error.response?.status === 401) {
+      console.warn('[API Interceptor] 401 Unauthorized. Forcing logout...')
+      try {
+        await firebaseSignOut(auth)
+      } catch (e) {
+        console.error('Failed to sign out on 401', e)
+      }
+    }
+
     // Surface a clean error message from the backend if available
     const message =
       error.response?.data?.message ||

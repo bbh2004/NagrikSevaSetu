@@ -65,10 +65,10 @@ app.use(
 );
 
 // Rate Limiting: Prevents DDoS and brute-force attacks.
-// Limits each IP to 100 requests per 15 minutes.
+// Limits each IP to 1000 requests per 15 minutes.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: process.env.NODE_ENV === 'development' ? 3000 : 1000, // Very high in development
   standardHeaders: true, // Return rate limit info in headers
   legacyHeaders: false,
   message: {
