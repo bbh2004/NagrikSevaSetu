@@ -1,41 +1,51 @@
-import 'package:civic/screens/home_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// lib/screens/wrapper.dart
+// ─────────────────────────────────────────────────────────────
+// Wrapper — Root Navigator Guard
+//
+// This widget listens to AuthProvider and decides which screen
+// to show. It no longer directly accesses FirebaseAuth.
+//
+// Navigation logic:
+//   AuthStatus.unknown       → Loading spinner (app is initializing)
+//   AuthStatus.unauthenticated → LoginPage
+//   AuthStatus.authenticated   → HomeScreen
+//
+// The emailVerified check is preserved: if Firebase says the user
+// is signed in but email is not verified, they go to VerifyScreen.
+// ─────────────────────────────────────────────────────────────
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import 'loginpage.dart';
+import 'home_screen.dart';
 import 'verify.dart';
-class Wrapper extends StatefulWidget {
+
+class Wrapper extends StatelessWidget {
   const Wrapper({super.key});
 
   @override
-  State<Wrapper> createState() => _WrapperState();
-}
-
-class _WrapperState extends State<Wrapper> {
-  Widget? currentScreen;
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
+    final authProvider = context.watch<AuthProvider>();
 
-          final user = snapshot.data;
+    // While Firebase is initializing or syncing to backend
+    if (authProvider.status == AuthStatus.unknown || authProvider.isSyncing) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
-          if (user == null) {
-            currentScreen = Loginpage();
-          } else if (user.emailVerified) {
-            currentScreen = HomeScreen();
-          } else {
-            currentScreen ??= Verify(); // Only assign once
-          }
+    // Unauthenticated → Show login
+    if (authProvider.status == AuthStatus.unauthenticated) {
+      // Check if a Firebase user exists but email is not verified
+      final firebaseUser = authProvider.firebaseUser;
+      if (firebaseUser != null && !firebaseUser.emailVerified) {
+        return const Verify();
+      }
+      return const Loginpage();
+    }
 
-          return currentScreen!;
-        },
-      ),
-    );
+    // Authenticated → Show main app
+    return const HomeScreen();
   }
 }

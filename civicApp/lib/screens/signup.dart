@@ -1,7 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
+// lib/screens/signup.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import 'wrapper.dart';
 
 class Signup extends StatefulWidget {
@@ -12,10 +13,10 @@ class Signup extends StatefulWidget {
 }
 
 class _SignupState extends State<Signup> with TickerProviderStateMixin {
-  TextEditingController email = TextEditingController();
-  TextEditingController password = TextEditingController();
-  TextEditingController confirmPassword = TextEditingController();
-  bool isLoading = false;
+  final TextEditingController email = TextEditingController();
+  final TextEditingController password = TextEditingController();
+  final TextEditingController confirmPassword = TextEditingController();
+  bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   late AnimationController _animationController;
@@ -65,43 +66,47 @@ class _SignupState extends State<Signup> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  bool isValidEmail(String email) {
-    final emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     return emailRegex.hasMatch(email);
   }
 
-  Future<void> signUp() async {
-    if (!isValidEmail(email.text.trim())) {
-      Get.snackbar('Invalid email', 'Enter valid email',
-          margin: EdgeInsets.all(30), snackPosition: SnackPosition.BOTTOM);
+  Future<void> _signUp() async {
+    if (!_isValidEmail(email.text.trim())) {
+      Get.snackbar('Invalid Email', 'Enter a valid email address',
+          margin: const EdgeInsets.all(30),
+          snackPosition: SnackPosition.BOTTOM);
       return;
     }
     if (password.text != confirmPassword.text) {
       Get.snackbar('Password Mismatch', 'Passwords do not match',
-          margin: EdgeInsets.all(30), snackPosition: SnackPosition.BOTTOM);
+          margin: const EdgeInsets.all(30),
+          snackPosition: SnackPosition.BOTTOM);
       return;
     }
-    setState(() {
-      isLoading = true;
-    });
-    try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: email.text.trim(), password: password.text);
-      Get.offAll(Wrapper());
-    } on FirebaseAuthException catch (e) {
-      Get.snackbar("Error", e.code);
-    } catch (e) {
-      Get.snackbar("Sign up failed", e.toString(),
-          margin: EdgeInsets.all(30), snackPosition: SnackPosition.BOTTOM);
+
+    setState(() => _isLoading = true);
+
+    final error = await context.read<AuthProvider>().signUpWithEmail(
+          email: email.text.trim(),
+          password: password.text,
+        );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (error != null) {
+      Get.snackbar('Sign Up Failed', error,
+          margin: const EdgeInsets.all(30), snackPosition: SnackPosition.BOTTOM);
+    } else {
+      // Sign-up successful — Wrapper handles navigation automatically
+      Get.offAll(() => const Wrapper());
     }
-    setState(() {
-      isLoading = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
+    if (_isLoading) {
       return Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
         body: Center(
@@ -117,8 +122,8 @@ class _SignupState extends State<Signup> with TickerProviderStateMixin {
               Text(
                 'Creating your account...',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
+                      color: Colors.grey.shade600,
+                    ),
               ),
             ],
           ),
@@ -205,7 +210,8 @@ class _SignupState extends State<Signup> with TickerProviderStateMixin {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
+                color:
+                    Theme.of(context).colorScheme.secondary.withOpacity(0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -221,17 +227,17 @@ class _SignupState extends State<Signup> with TickerProviderStateMixin {
         Text(
           'Create Account',
           style: Theme.of(context).textTheme.displayMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
+                fontWeight: FontWeight.w700,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
         ),
         const SizedBox(height: 8),
         Text(
           'Join नागरिक सेवा सेतु and make your voice heard',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: Colors.grey.shade600,
-            height: 1.5,
-          ),
+                color: Colors.grey.shade600,
+                height: 1.5,
+              ),
         ),
       ],
     );
@@ -310,7 +316,8 @@ class _SignupState extends State<Signup> with TickerProviderStateMixin {
             margin: const EdgeInsets.all(12),
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+              color:
+                  Theme.of(context).colorScheme.secondary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
@@ -345,7 +352,7 @@ class _SignupState extends State<Signup> with TickerProviderStateMixin {
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: signUp,
+        onPressed: _signUp,
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).colorScheme.secondary,
           foregroundColor: Colors.white,
@@ -353,14 +360,15 @@ class _SignupState extends State<Signup> with TickerProviderStateMixin {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          shadowColor: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
+          shadowColor:
+              Theme.of(context).colorScheme.secondary.withOpacity(0.3),
         ),
         child: Text(
           'Create Account',
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
         ),
       ),
     );

@@ -1,8 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
 class Forgot extends StatefulWidget {
   const Forgot({super.key});
@@ -59,29 +58,28 @@ class _ForgotState extends State<Forgot> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  reset() async {
+  Future<void> reset() async {
     if (email.text.trim().isEmpty) {
-      Get.snackbar("Error", "Please enter your email address",
+      Get.snackbar('Error', 'Please enter your email address',
           snackPosition: SnackPosition.BOTTOM);
       return;
     }
-    
-    setState(() {
-      isLoading = true;
-    });
-    
-    try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email.text);
-      Get.snackbar("Link Sent", "Click link in the email to reset password",
-          snackPosition: SnackPosition.BOTTOM);
-    } catch (e) {
-      Get.snackbar("Error", "Failed to send reset email",
+
+    setState(() => isLoading = true);
+
+    final error = await context.read<AuthProvider>().sendPasswordResetEmail(
+          email.text.trim(),
+        );
+
+    if (!mounted) return;
+    setState(() => isLoading = false);
+
+    if (error != null) {
+      Get.snackbar('Error', error, snackPosition: SnackPosition.BOTTOM);
+    } else {
+      Get.snackbar('Link Sent', 'Check your email to reset your password',
           snackPosition: SnackPosition.BOTTOM);
     }
-    
-    setState(() {
-      isLoading = false;
-    });
   }
 
   @override

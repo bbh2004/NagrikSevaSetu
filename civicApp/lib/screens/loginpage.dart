@@ -1,9 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
+// lib/screens/loginpage.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
-
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import 'forgot.dart';
 import 'signup.dart';
 
@@ -15,9 +14,9 @@ class Loginpage extends StatefulWidget {
 }
 
 class _LoginpageState extends State<Loginpage> with TickerProviderStateMixin {
-  TextEditingController email = TextEditingController();
-  TextEditingController password = TextEditingController();
-  bool isLoading = false;
+  final TextEditingController email = TextEditingController();
+  final TextEditingController password = TextEditingController();
+  bool _isLoading = false;
   bool _obscurePassword = true;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -65,26 +64,26 @@ class _LoginpageState extends State<Loginpage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  signIn() async {
-    setState(() {
-      isLoading = true;
-    });
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: email.text, password: password.text);
-    } on FirebaseAuthException catch (e) {
-      Get.snackbar("Error!!!", e.code);
-    } catch (e) {
-      Get.snackbar("Error!!!", e.toString());
+  Future<void> _signIn() async {
+    setState(() => _isLoading = true);
+
+    final error = await context.read<AuthProvider>().signInWithEmail(
+          email: email.text,
+          password: password.text,
+        );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (error != null) {
+      Get.snackbar('Sign In Failed', error);
     }
-    setState(() {
-      isLoading = false;
-    });
+    // On success, Wrapper reacts automatically to AuthProvider state change.
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
+    if (_isLoading) {
       return Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
         body: Center(
@@ -100,8 +99,8 @@ class _LoginpageState extends State<Loginpage> with TickerProviderStateMixin {
               Text(
                 'Signing you in...',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
+                      color: Colors.grey.shade600,
+                    ),
               ),
             ],
           ),
@@ -176,17 +175,17 @@ class _LoginpageState extends State<Loginpage> with TickerProviderStateMixin {
         Text(
           'Welcome Back',
           style: Theme.of(context).textTheme.displayMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
+                fontWeight: FontWeight.w700,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
         ),
         const SizedBox(height: 8),
         Text(
           'Sign in to continue to नागरिक सेवा सेतु',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: Colors.grey.shade600,
-            height: 1.5,
-          ),
+                color: Colors.grey.shade600,
+                height: 1.5,
+              ),
         ),
       ],
     );
@@ -286,7 +285,7 @@ class _LoginpageState extends State<Loginpage> with TickerProviderStateMixin {
           width: double.infinity,
           height: 56,
           child: ElevatedButton(
-            onPressed: signIn,
+            onPressed: _signIn,
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Colors.white,
@@ -294,14 +293,15 @@ class _LoginpageState extends State<Loginpage> with TickerProviderStateMixin {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              shadowColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+              shadowColor:
+                  Theme.of(context).colorScheme.primary.withOpacity(0.3),
             ),
             child: Text(
               'Sign In',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ),
         ),
@@ -311,14 +311,14 @@ class _LoginpageState extends State<Loginpage> with TickerProviderStateMixin {
             Expanded(
               child: _buildSecondaryButton(
                 text: 'Create Account',
-                onPressed: () => Get.to(Signup()),
+                onPressed: () => Get.to(() => const Signup()),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildSecondaryButton(
                 text: 'Forgot Password?',
-                onPressed: () => Get.to(Forgot()),
+                onPressed: () => Get.to(() => const Forgot()),
               ),
             ),
           ],
@@ -344,9 +344,9 @@ class _LoginpageState extends State<Loginpage> with TickerProviderStateMixin {
         child: Text(
           text,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Colors.grey.shade700,
-            fontWeight: FontWeight.w500,
-          ),
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w500,
+              ),
         ),
       ),
     );

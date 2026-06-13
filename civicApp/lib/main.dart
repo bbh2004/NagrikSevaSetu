@@ -1,27 +1,77 @@
-import 'package:civic/screens/wrapper.dart';
-import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
+// lib/main.dart
+// ─────────────────────────────────────────────────────────────
+// App Entry Point — Dependency Injection & Provider Setup
+//
+// This is the COMPOSITION ROOT of the application.
+// All dependencies are created here, once, and injected
+// down the widget tree via MultiProvider.
+//
+// Dependency graph (bottom to top):
+//   Firebase.initializeApp()
+//     └─ ApiClient (Dio + Firebase token interceptor)
+//         ├─ AuthRepository → AuthProvider
+//         ├─ ComplaintRepository → ComplaintProvider
+//         └─ NotificationRepository → NotificationProvider
+//
+// No class in the app creates its own dependencies.
+// They are all injected from here. This makes testing trivial.
+// ─────────────────────────────────────────────────────────────
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
-import 'screens/auth_screen.dart';
-import 'screens/home_screen.dart';
+import 'package:provider/provider.dart';
+
+import 'core/network/api_client.dart';
+import 'providers/auth_provider.dart' as app_auth;
+import 'providers/complaint_provider.dart';
+import 'providers/notification_provider.dart';
+import 'repositories/auth_repository.dart';
+import 'repositories/complaint_repository.dart';
+import 'repositories/notification_repository.dart';
+import 'screens/wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  try {
-    // Add a print statement to verify execution reaches here
-    print("====== ATTEMPTING FIREBASE INIT ======");
-    await Firebase.initializeApp();
-    print("====== FIREBASE INIT SUCCESS ======");
-  } catch (e, stacktrace) {
-    // This will force any hidden errors to print to your terminal
-    print("====== FIREBASE INIT FAILED ======");
-    print(e.toString());
-    print(stacktrace);
-  }
+  // Initialize Firebase (Auth only — Firestore removed)
+  await Firebase.initializeApp();
 
-  runApp(const CivicApp());
+  // ── Build the dependency graph ────────────────────────────────
+  // Create the single ApiClient instance. It attaches Firebase
+  // tokens automatically via its internal AuthInterceptor.
+  final apiClient = ApiClient();
+
+  // Build repositories (data access layer)
+  final authRepository    = AuthRepository(apiClient: apiClient);
+  final complaintRepository = ComplaintRepository(apiClient: apiClient);
+  final notificationRepository = NotificationRepository(apiClient: apiClient);
+
+  runApp(
+    MultiProvider(
+      providers: [
+        // AuthProvider: listen to Firebase Auth state + sync to backend
+        ChangeNotifierProvider(
+          create: (_) => app_auth.AuthProvider(
+            firebaseAuth: FirebaseAuth.instance,
+            authRepository: authRepository,
+          ),
+        ),
+
+        // ComplaintProvider: manages complaint list state
+        ChangeNotifierProvider(
+          create: (_) => ComplaintProvider(repository: complaintRepository),
+        ),
+
+        // NotificationProvider: manages notification state
+        ChangeNotifierProvider(
+          create: (_) => NotificationProvider(repository: notificationRepository),
+        ),
+      ],
+      child: const CivicApp(),
+    ),
+  );
 }
 
 class CivicApp extends StatelessWidget {
@@ -33,27 +83,24 @@ class CivicApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Nagarik Seva Setu',
       theme: _buildModernTheme(),
-      home: Wrapper(),
+      home: const Wrapper(),
     );
   }
 
   ThemeData _buildModernTheme() {
     return ThemeData(
       useMaterial3: true,
-      colorScheme:
-          ColorScheme.fromSeed(
-            seedColor: const Color(0xFF6366F1),
-            brightness: Brightness.light,
-          ).copyWith(
-            primary: const Color(0xFF6366F1),
-            secondary: const Color(0xFF8B5CF6),
-            surface: const Color(0xFFFAFAFA),
-            background: const Color(0xFFFFFFFF),
-            onPrimary: Colors.white,
-            onSecondary: Colors.white,
-            onSurface: const Color(0xFF1F2937),
-            onBackground: const Color(0xFF1F2937),
-          ),
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xFF6366F1),
+        brightness: Brightness.light,
+      ).copyWith(
+        primary: const Color(0xFF6366F1),
+        secondary: const Color(0xFF8B5CF6),
+        surface: const Color(0xFFFAFAFA),
+        onPrimary: Colors.white,
+        onSecondary: Colors.white,
+        onSurface: const Color(0xFF1F2937),
+      ),
       fontFamily: 'SF Pro Display',
       textTheme: const TextTheme(
         displayLarge: TextStyle(

@@ -1,12 +1,10 @@
+// lib/screens/submit_complaint.dart
 import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart'; // It's good practice to import this directly
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../models/complaint.dart';
-
-// prefix the imports so Dart never confuses the symbols
-import '../services/firebase_service.dart' as fb;
-import '../services/location_service.dart' as loc;
+import 'package:provider/provider.dart';
+import '../providers/complaint_provider.dart';
+import '../services/location_service.dart';
 
 class SubmitComplaintScreen extends StatefulWidget {
   final String initialCategory;
@@ -18,86 +16,54 @@ class SubmitComplaintScreen extends StatefulWidget {
 
 class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
   final _descController = TextEditingController();
+  final LocationService _locationService = LocationService();
   File? _image;
-  bool _loading = false;
-
-  final fb.FirebaseService _firebaseService = fb.FirebaseService();
-  final loc.LocationService _locationService = loc.LocationService();
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final picked =
-    await picker.pickImage(source: ImageSource.camera, imageQuality: 80);
+        await picker.pickImage(source: ImageSource.camera, imageQuality: 80);
     if (picked != null) setState(() => _image = File(picked.path));
   }
 
-  // =======================================================================
-  // === THIS IS THE UPDATED FUNCTION WITH THE FIX =========================
-  // =======================================================================
   Future<void> _submit() async {
     if (_descController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a description')));
+        const SnackBar(content: Text('Please enter a description')),
+      );
       return;
     }
 
-    // === FIX START: VALIDATE THE USER IS LOGGED IN ===
-    // 1) Get the user ID and ensure it is not null before proceeding.
-    final String? currentUserId = _firebaseService.currentUserId;
-
-    if (currentUserId == null) {
-      // If user is not logged in or auth state is not ready, show an error and stop.
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not submit: User not signed in.')),
-      );
-      return; // Stop the function here.
-    }
-    // === FIX END ===
-
-    setState(() => _loading = true);
-
     try {
-      // 2) Get location
+      // Get current location
       final position = await _locationService.getCurrentLocation();
 
-      // 3) Upload image (if any)
-      String? imageUrl;
-      if (_image != null) {
-        imageUrl = await _firebaseService.uploadImageToCloudinary(_image!);
-      }
+      // Delegate to ComplaintProvider — no HTTP logic in the screen
+      final error = await context.read<ComplaintProvider>().submitComplaint(
+            category: widget.initialCategory,
+            description: _descController.text.trim(),
+            lat: position.latitude,
+            lng: position.longitude,
+            imageFile: _image,
+          );
 
-      // 4) Build the complaint with the VALIDATED user ID
-      final complaint = Complaint(
-        id: '',
-        userId: currentUserId, // 🔹 Use the validated ID. No more '?? anonymous'
-        category: widget.initialCategory,
-        description: _descController.text.trim(),
-        imageUrl: imageUrl,
-        voiceNoteUrl: null,
-        status: 'Pending',
-        upvotes: 0,
-        lat: position.latitude,
-        lng: position.longitude,
-        createdAt: DateTime.now(),
-      );
+      if (!mounted) return;
 
-      // 5) Save to Firestore
-      await _firebaseService.addComplaint(complaint);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Complaint submitted successfully')));
-
-      if (mounted) {
+      if (error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Submit failed: $error')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Complaint submitted successfully')),
+        );
         Navigator.pop(context);
       }
     } catch (e) {
-      debugPrint('Submit error: $e');
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Submit failed: $e')));
-    } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not get location: $e')),
+      );
     }
   }
 
@@ -109,6 +75,9 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch isSubmitting from the provider for loading state
+    final isSubmitting = context.watch<ComplaintProvider>().isSubmitting;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Submit Complaint')),
       body: SingleChildScrollView(
@@ -117,7 +86,7 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Department: ${widget.initialCategory}",
+              'Department: ${widget.initialCategory}',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -135,9 +104,9 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
               child: _image == null
                   ? const Text('No image selected')
                   : ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.file(_image!, height: 200, fit: BoxFit.cover),
-              ),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.file(_image!, height: 200, fit: BoxFit.cover),
+                    ),
             ),
             const SizedBox(height: 10),
             Center(
@@ -152,8 +121,8 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _loading ? null : _submit,
-                child: _loading
+                onPressed: isSubmitting ? null : _submit,
+                child: isSubmitting
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text('Submit Complaint'),
               ),
