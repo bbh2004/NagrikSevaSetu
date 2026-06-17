@@ -98,10 +98,14 @@ Complaint: "${description}"`;
  * @param {string} description - Complaint description text
  */
 const detectAndUpdateUrgency = async (complaintId, description) => {
-  const urgency = await classifyUrgencyWithGemini(description);
-
-  await Complaint.findByIdAndUpdate(complaintId, { urgency });
-  console.log(`[UrgencyService] Complaint ${complaintId} classified as: ${urgency}`);
+  try {
+    const urgency = await classifyUrgencyWithGemini(description);
+    await Complaint.findByIdAndUpdate(complaintId, { urgency, urgencyClassification: 'done' });
+    console.log(`[UrgencyService] Complaint ${complaintId} classified as: ${urgency}`);
+  } catch (error) {
+    console.error(`[UrgencyService] Failed to detect urgency for ${complaintId}:`, error.message);
+    await Complaint.findByIdAndUpdate(complaintId, { urgencyClassification: 'failed' });
+  }
 };
 
 module.exports = { detectAndUpdateUrgency };

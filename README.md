@@ -40,12 +40,12 @@ The system intelligently reduces duplicate complaints, improves response accurac
 
 ### 🌟 Core Capabilities
 
-- ✅ **End-to-end complaint tracking** from submission to resolution
-- 🔄 **Duplicate prevention** via geolocation-based upvoting system
-- 🤖 **AI-driven urgency classification** for critical issues
-- 🗺️ **Interactive map visualization** using Leaflet
-- 📊 **Real-time analytics dashboard** for municipal insights
-- 🔥 **Live synchronization** across mobile app and web dashboard via Firebase
+- ✅ **End-to-end complaint tracking** from submission to resolution with audit logs
+- 🔄 **Duplicate prevention** via geolocation-based nearby check and upvoting system
+- 🤖 **AI-driven urgency classification** for critical issues (Gemini Integration)
+- 🗺️ **Interactive map visualization** using Google Maps
+- 📊 **Analytics dashboard** for municipal insights
+- 🔥 **REST API synchronization** across mobile app and web dashboard via a custom Express/MongoDB backend
 
 ---
 
@@ -57,8 +57,8 @@ The citizen-facing mobile application provides an intuitive interface for report
 
 #### 🔐 Secure Authentication
 - Email-based login
-- Google Sign-In integration
 - Firebase Authentication
+- Google Sign-In integration (planned)
 
 #### 📝 Complaint Submission
 - 📸 Upload issue photographs
@@ -146,10 +146,10 @@ A comprehensive, role-based dashboard for municipal authorities to efficiently m
 ### Web Dashboard
 | Technology | Purpose |
 |------------|---------|
-| **HTML/CSS/JavaScript** | Frontend framework |
-| **Firebase Firestore** | Real-time database |
-| **Leaflet.js** | Interactive maps |
-| **Chart.js** | Data visualization |
+| **React / Tailwind CSS / Vite** | Web App Stack |
+| **Axios** | REST API client |
+| **Google Maps API** | Interactive maps |
+| **Recharts** | Data visualization |
 
 ### Backend & Infrastructure
 | Technology | Purpose |

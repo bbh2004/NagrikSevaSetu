@@ -95,7 +95,6 @@ const updateStatusSchema = Joi.object({
 // POST /api/users/sync
 const syncUserSchema = Joi.object({
   name: Joi.string().min(1).max(100).required(),
-  email: Joi.string().email().required(),
   phone: Joi.string().optional().allow(null, ''),
 });
 

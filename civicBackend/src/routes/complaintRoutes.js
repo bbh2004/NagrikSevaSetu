@@ -25,6 +25,8 @@ const {
   toggleUpvote,
   getStats,
   getMapComplaints,
+  getNearbyComplaints,
+  withdrawComplaint,
 } = require('../controllers/complaintController');
 
 const { verifyFirebaseToken, requireRole } = require('../middleware/auth');
@@ -40,6 +42,10 @@ router.get('/stats', requireRole('admin', 'main_officer', 'department_staff'), g
 // GET  /api/complaints/map → Viewport-bounded map pins (uses $geoWithin on 2dsphere index)
 //      Must also come before /:id for the same reason as /stats
 router.get('/map', requireRole('admin', 'main_officer', 'department_staff'), getMapComplaints);
+
+// GET  /api/complaints/nearby → Search for nearby complaints
+//      Must also come before /:id for the same reason
+router.get('/nearby', getNearbyComplaints);
 
 // GET  /api/complaints/mine → Get logged-in user's own complaints
 router.get('/mine', getMyComplaints);
@@ -63,5 +69,8 @@ router.patch(
 
 // POST /api/complaints/:id/upvote → Toggle upvote (citizens only)
 router.post('/:id/upvote', toggleUpvote);
+
+// DELETE /api/complaints/:id → Withdraw a complaint (citizens only)
+router.delete('/:id', withdrawComplaint);
 
 module.exports = router;

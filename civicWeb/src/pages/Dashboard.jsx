@@ -28,9 +28,9 @@ const MAP_CONTAINER_STYLE = { width: '100%', height: '380px' }
 
 // Google Maps icon URLs by status — colour-coded for quick visual triage
 const MARKER_ICONS = {
-  Pending:     'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
-  'In Progress': 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-  Resolved:    'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
+  Pending:     'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+  'In Progress': 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+  Resolved:    'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
 }
 
 export default function Dashboard() {

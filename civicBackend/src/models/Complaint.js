@@ -114,6 +114,21 @@ const complaintSchema = new mongoose.Schema(
         },
       },
     },
+    // Status history for auditing
+    statusHistory: [
+      {
+        status: { type: String, required: true },
+        changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        changedAt: { type: Date, default: Date.now },
+        note: { type: String, default: '' },
+      },
+    ],
+    // Tracking AI urgency classification status
+    urgencyClassification: {
+      type: String,
+      enum: ['pending', 'done', 'failed'],
+      default: 'pending',
+    },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt automatically

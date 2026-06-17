@@ -63,10 +63,24 @@ const userSchema = new mongoose.Schema(
     department: {
       type: String,
       enum: {
-        values: ['Sanitation', 'Water', 'Electrical', 'Road', 'Others', null],
+        values: ['Sanitation', 'Water', 'Electrical', 'Road', 'Others'],
         message: 'Department must be one of: Sanitation, Water, Electrical, Road, Others',
       },
-      default: null,
+      required: function () {
+        return this.role === 'department_staff';
+      },
+      default: undefined,
+    },
+    // Firebase Cloud Messaging (FCM) tokens for push notifications
+    fcmTokens: [
+      {
+        type: String,
+      },
+    ],
+    // Force staff to change password on first login
+    mustChangePassword: {
+      type: Boolean,
+      default: false,
     },
   },
   {

@@ -34,7 +34,8 @@ const User = require('../models/User');
  */
 const syncUser = async (req, res, next) => {
   try {
-    const { name, email, phone } = req.body;
+    const { name, phone } = req.body;
+    const email = req.user.email || ''; // Always from the verified Firebase ID token
     const firebaseUid = req.user.uid; // From verifyFirebaseToken middleware
 
     // findOneAndUpdate with upsert:true creates the doc if it doesn't exist
@@ -94,4 +95,17 @@ const getMyProfile = async (req, res, next) => {
   }
 };
 
-module.exports = { syncUser, getMyProfile };
+const changePasswordDone = async (req, res, next) => {
+  try {
+    req.dbUser.mustChangePassword = false;
+    await req.dbUser.save();
+    res.status(200).json({
+      success: true,
+      message: 'Password change acknowledged.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { syncUser, getMyProfile, changePasswordDone };

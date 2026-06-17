@@ -39,8 +39,7 @@ export default function Departments() {
 
   const startLogin = (deptId) => {
     setLoginModal({ open: true, target: deptId })
-    const prefix = deptId === 'admin' ? 'admin' : deptId.toLowerCase()
-    setEmail(`${prefix}@civic.gov.in`)
+    setEmail('')
     setPassword('')
     setError('')
   }

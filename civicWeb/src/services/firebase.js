@@ -1,7 +1,6 @@
 // Firebase initialization for the web-portal, aligned to the mobile app project
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
 
 // NOTE: These values are now loaded from environment variables
 const firebaseConfig = {
@@ -14,7 +13,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 
 export const auth = getAuth(app)
-export const db = getFirestore(app)
 
 export default app
 

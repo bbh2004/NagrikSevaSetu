@@ -58,7 +58,7 @@ export default function DepartmentDashboard() {
         // Fetch ALL non-resolved complaints (Pending + In Progress) — no status filter
         // so we get both statuses in one call. We sort by createdAt desc (newest first),
         // then re-sort client-side by urgency for correct priority display.
-        api.get(`/complaints?category=${encodeURIComponent(targetDept)}&page=${activePage}&limit=${PAGE_SIZE}&sortBy=createdAt`),
+        api.get(`/complaints?category=${encodeURIComponent(targetDept)}&status=Pending,In Progress&page=${activePage}&limit=${PAGE_SIZE}&sortBy=createdAt`),
         api.get(`/complaints?category=${encodeURIComponent(targetDept)}&status=Resolved&page=${resolvedPage}&limit=${PAGE_SIZE}`),
       ])
 

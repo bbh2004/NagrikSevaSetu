@@ -34,6 +34,12 @@ const errorHandler = (err, req, res, next) => {
   let statusCode = err.statusCode || err.status || 500;
   let message = err.message || 'Internal Server Error';
 
+  // Handle CORS errors (Fix B7)
+  if (err.message && err.message.startsWith('CORS: Origin')) {
+    statusCode = 403;
+    message = 'Forbidden: Cross-Origin request blocked.';
+  }
+
   // Handle Mongoose Validation Errors (e.g., required field missing)
   if (err.name === 'ValidationError') {
     statusCode = 400;

@@ -107,11 +107,16 @@ export default function ComplaintDetail() {
     : null
 
   // Timeline Step Logic
+  // Timeline Step Logic
+  const hasStatusInHistory = (statuses) => {
+    return complaint.statusHistory?.some(h => statuses.includes(h.status)) || false;
+  };
+
   const timelineSteps = [
     { label: 'Created', active: true, icon: <CheckCircle size={16} /> },
-    { label: 'AI Analyzed', active: true, icon: <Activity size={16} /> },
-    { label: 'Acknowledged', active: ['In Progress', 'Resolved'].includes(complaint.status), icon: <Clock size={16} /> },
-    { label: 'Resolved', active: complaint.status === 'Resolved', icon: <CheckCircle size={16} /> }
+    { label: 'AI Analyzed', active: complaint.urgencyClassification === 'done', icon: <Activity size={16} /> },
+    { label: 'Acknowledged', active: hasStatusInHistory(['In Progress', 'Resolved', 'Rejected']), icon: <Clock size={16} /> },
+    { label: 'Resolved', active: hasStatusInHistory(['Resolved', 'Rejected']), icon: <CheckCircle size={16} /> }
   ];
 
   return (
@@ -160,6 +165,27 @@ export default function ComplaintDetail() {
               ))}
             </div>
           </div>
+
+          {/* ── Audit Log Trail ───────────────── */}
+          {complaint.statusHistory && complaint.statusHistory.length > 0 && (
+            <div className="w-full bg-surface-container-low border border-outline-variant rounded p-4">
+              <h4 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">Audit Log Trail</h4>
+              <div className="space-y-3">
+                {complaint.statusHistory.map((h, idx) => (
+                  <div key={idx} className="flex justify-between items-start text-sm border-b border-outline-variant pb-2 last:border-b-0 last:pb-0">
+                    <div>
+                      <span className="font-semibold text-primary mr-2">[{h.status}]</span>
+                      <span className="text-on-surface text-xs">{h.note}</span>
+                    </div>
+                    <div className="text-right text-xs text-on-surface-variant">
+                      <div>By: {h.changedBy?.name || 'Reporter'} ({h.changedBy?.role || 'Citizen'})</div>
+                      <div className="mt-0.5">{shortDateTime(h.changedAt)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-5">

@@ -27,9 +27,10 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
   }
 
   Future<void> _submit() async {
-    if (_descController.text.trim().isEmpty) {
+    final descriptionText = _descController.text.trim();
+    if (descriptionText.length < 10) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a description')),
+        const SnackBar(content: Text('Description must be at least 10 characters long')),
       );
       return;
     }
@@ -95,6 +96,7 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
             const SizedBox(height: 20),
             TextField(
               controller: _descController,
+              maxLength: 1000,
               decoration: const InputDecoration(
                   labelText: 'Description', border: OutlineInputBorder()),
               maxLines: 4,

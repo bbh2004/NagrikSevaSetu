@@ -64,7 +64,7 @@ class _MapScreenState extends State<MapScreen> {
 
           return GoogleMap(
             initialCameraPosition: const CameraPosition(
-                target: LatLng(12.9716, 77.5946), zoom: 12),
+                target: LatLng(23.3441, 85.3096), zoom: 13),
             markers: markers,
           );
         },

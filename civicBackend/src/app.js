@@ -28,6 +28,9 @@ const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 const app = express();
 
+// Trust reverse proxy for rate limiting (Fix B9)
+app.set('trust proxy', 1);
+
 // ─── SECURITY MIDDLEWARE ──────────────────────────────────────
 
 // Helmet: Sets various secure HTTP headers automatically.

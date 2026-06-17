@@ -13,6 +13,7 @@ class Signup extends StatefulWidget {
 }
 
 class _SignupState extends State<Signup> with TickerProviderStateMixin {
+  final TextEditingController name = TextEditingController();
   final TextEditingController email = TextEditingController();
   final TextEditingController password = TextEditingController();
   final TextEditingController confirmPassword = TextEditingController();
@@ -60,6 +61,7 @@ class _SignupState extends State<Signup> with TickerProviderStateMixin {
   @override
   void dispose() {
     _animationController.dispose();
+    name.dispose();
     email.dispose();
     password.dispose();
     confirmPassword.dispose();
@@ -72,6 +74,12 @@ class _SignupState extends State<Signup> with TickerProviderStateMixin {
   }
 
   Future<void> _signUp() async {
+    if (name.text.trim().isEmpty) {
+      Get.snackbar('Name Required', 'Please enter your full name',
+          margin: const EdgeInsets.all(30),
+          snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
     if (!_isValidEmail(email.text.trim())) {
       Get.snackbar('Invalid Email', 'Enter a valid email address',
           margin: const EdgeInsets.all(30),
@@ -90,6 +98,7 @@ class _SignupState extends State<Signup> with TickerProviderStateMixin {
     final error = await context.read<AuthProvider>().signUpWithEmail(
           email: email.text.trim(),
           password: password.text,
+          name: name.text.trim(),
         );
 
     if (!mounted) return;
@@ -246,6 +255,13 @@ class _SignupState extends State<Signup> with TickerProviderStateMixin {
   Widget _buildSignupForm() {
     return Column(
       children: [
+        _buildTextField(
+          controller: name,
+          hintText: 'Full Name',
+          icon: Icons.person_outline,
+          keyboardType: TextInputType.name,
+        ),
+        const SizedBox(height: 20),
         _buildTextField(
           controller: email,
           hintText: 'Email Address',
