@@ -53,7 +53,9 @@ class AuthProvider extends ChangeNotifier {
   // ── Auth State Listener ───────────────────────────────────────
 
   Future<void> _onAuthStateChanged(User? user) async {
+    debugPrint('[AuthProvider] _onAuthStateChanged triggered. User: ${user?.email}, verified: ${user?.emailVerified}');
     if (user == null) {
+      debugPrint('[AuthProvider] User is null. Setting status to unauthenticated.');
       _status = AuthStatus.unauthenticated;
       _userProfile = null;
       notifyListeners();
@@ -62,10 +64,16 @@ class AuthProvider extends ChangeNotifier {
 
     // User is signed in — fetch/sync their MongoDB profile
     if (user.emailVerified) {
+      debugPrint('[AuthProvider] User is verified. Initiating backend sync...');
       _isSyncing = true;
       notifyListeners();
       await _syncToBackend(user);
       _isSyncing = false;
+      notifyListeners();
+    } else {
+      debugPrint('[AuthProvider] User is NOT verified. Status remains unauthenticated.');
+      _status = AuthStatus.unauthenticated;
+      _userProfile = null;
       notifyListeners();
     }
   }
@@ -73,10 +81,18 @@ class AuthProvider extends ChangeNotifier {
   /// Syncs the Firebase user to MongoDB and loads their profile.
   Future<void> _syncToBackend(User user) async {
     try {
+      debugPrint('[AuthProvider] Calling _authRepository.syncUser...');
+      
+      // Firebase sometimes returns an empty string instead of null for displayName
+      final resolvedName = (user.displayName != null && user.displayName!.trim().isNotEmpty)
+          ? user.displayName!
+          : (user.email?.split('@').first ?? 'User');
+
       _userProfile = await _authRepository.syncUser(
-        name: user.displayName ?? user.email?.split('@').first ?? 'User',
+        name: resolvedName,
         email: user.email ?? '',
       );
+      debugPrint('[AuthProvider] Backend sync successful. Setting status to authenticated.');
       _status = AuthStatus.authenticated;
       _errorMessage = null;
     } on AppException catch (e) {
@@ -89,6 +105,18 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('[AuthProvider] Unexpected sync error: $e');
       _status = AuthStatus.unauthenticated;
+    }
+  }
+
+  /// Reloads the current Firebase user and updates the auth state.
+  Future<void> reloadUser() async {
+    debugPrint('[AuthProvider] Manually reloading Firebase user...');
+    final user = _firebaseAuth.currentUser;
+    if (user != null) {
+      await user.reload();
+      final updatedUser = _firebaseAuth.currentUser;
+      debugPrint('[AuthProvider] Reload completed. Updated emailVerified: ${updatedUser?.emailVerified}');
+      await _onAuthStateChanged(updatedUser);
     }
   }
 

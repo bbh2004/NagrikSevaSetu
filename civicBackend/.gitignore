@@ -25,3 +25,6 @@ firebase-service-account.json
 
 # Test coverage
 coverage/
+
+#Others
+wipeDB.js

@@ -64,6 +64,16 @@ const verifyFirebaseToken = async (req, res, next) => {
     const dbUser = await User.findOne({ firebaseUid: decodedToken.uid });
 
     if (!dbUser) {
+      // If calling the sync endpoint, we don't require the MongoDB document
+      // to exist yet, as the sync endpoint is responsible for creating it.
+      const isSyncRoute = req.path === '/sync' || 
+                          req.path === '/sync/' || 
+                          req.originalUrl.includes('/users/sync');
+      if (isSyncRoute) {
+        req.dbUser = null;
+        return next();
+      }
+
       // User is authenticated with Firebase but not registered in our DB.
       // This can happen if the user was created on Firebase but our
       // POST /api/users/sync endpoint was never called.

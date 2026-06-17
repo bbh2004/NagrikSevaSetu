@@ -35,21 +35,17 @@ class _LoginpageState extends State<Loginpage> with TickerProviderStateMixin {
       vsync: this,
     );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOut,
-    ));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutCubic,
-    ));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
   }
 
   void _startAnimations() {
@@ -65,18 +61,24 @@ class _LoginpageState extends State<Loginpage> with TickerProviderStateMixin {
   }
 
   Future<void> _signIn() async {
+    print("SIGN IN BUTTON PRESSED");
     setState(() => _isLoading = true);
-
+    print("Calling signInWithEmail...");
+    print("Email: ${email.text}");
     final error = await context.read<AuthProvider>().signInWithEmail(
-          email: email.text,
-          password: password.text,
-        );
-
+      email: email.text,
+      password: password.text,
+    );
+    print("signInWithEmail returned");
+    print("Error: $error");
     if (!mounted) return;
     setState(() => _isLoading = false);
 
     if (error != null) {
+      print("Showing error snackbar");
       Get.snackbar('Sign In Failed', error);
+    } else {
+      print("Login Successful");
     }
     // On success, Wrapper reacts automatically to AuthProvider state change.
   }
@@ -98,9 +100,9 @@ class _LoginpageState extends State<Loginpage> with TickerProviderStateMixin {
               const SizedBox(height: 16),
               Text(
                 'Signing you in...',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey.shade600,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: Colors.grey.shade600),
               ),
             ],
           ),
@@ -175,17 +177,17 @@ class _LoginpageState extends State<Loginpage> with TickerProviderStateMixin {
         Text(
           'Welcome Back',
           style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+            fontWeight: FontWeight.w700,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
         const SizedBox(height: 8),
         Text(
           'Sign in to continue to नागरिक सेवा सेतु',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.grey.shade600,
-                height: 1.5,
-              ),
+            color: Colors.grey.shade600,
+            height: 1.5,
+          ),
         ),
       ],
     );
@@ -293,15 +295,16 @@ class _LoginpageState extends State<Loginpage> with TickerProviderStateMixin {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              shadowColor:
-                  Theme.of(context).colorScheme.primary.withOpacity(0.3),
+              shadowColor: Theme.of(
+                context,
+              ).colorScheme.primary.withOpacity(0.3),
             ),
             child: Text(
               'Sign In',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
@@ -344,9 +347,9 @@ class _LoginpageState extends State<Loginpage> with TickerProviderStateMixin {
         child: Text(
           text,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: Colors.grey.shade700,
-                fontWeight: FontWeight.w500,
-              ),
+            color: Colors.grey.shade700,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );

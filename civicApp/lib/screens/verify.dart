@@ -1,6 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import 'loginpage.dart';
 import 'wrapper.dart';
 
@@ -14,101 +16,98 @@ class Verify extends StatefulWidget {
 
 class _VerifyState extends State<Verify> {
   bool _linkSent = false;
-  bool _deleteTimerStarted = false;
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (!_linkSent) {
         sendVerifyLink();
         _linkSent = true;
-      }
-      if (!_deleteTimerStarted) {
-        startAutoDeleteTimer();
-        _deleteTimerStarted = true;
       }
     });
   }
 
   Future<void> sendVerifyLink() async {
     try {
-      final user = FirebaseAuth.instance.currentUser!;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        debugPrint('[Verify] sendVerifyLink: currentUser is null.');
+        return;
+      }
       if (!user.emailVerified) {
         await user.sendEmailVerification();
         if (mounted) {
           Get.snackbar(
             'Link Sent',
             'A link has been sent to your email.',
-            margin: EdgeInsets.all(30),
+            margin: const EdgeInsets.all(30),
             snackPosition: SnackPosition.BOTTOM,
           );
         }
       }
     } catch (e) {
-      final user = FirebaseAuth.instance.currentUser!;
-      print("Error: $e");
-      Get.snackbar(
-        "Error",
-        "Failed to send verification link. Sign up again.",
-        margin: EdgeInsets.all(30),
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      await FirebaseAuth.instance.signOut();
-      await user.delete();
-      Get.offAll(() => Loginpage());
+      debugPrint("[Verify] Error sending verification link: $e");
+      if (mounted) {
+        String errorMsg = "Failed to send verification link.";
+        if (e.toString().contains("too-many-requests")) {
+          errorMsg = "Verification email already sent. Please check your inbox or try again later.";
+        }
+        Get.snackbar(
+          "Verification Status",
+          errorMsg,
+          margin: const EdgeInsets.all(30),
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
     }
   }
 
   Future<void> reload() async {
-    await FirebaseAuth.instance.currentUser!.reload();
-    final user = FirebaseAuth.instance.currentUser!;
-    if (user.emailVerified) {
-      Get.offAll(() => Wrapper());
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.reloadUser();
+    if (authProvider.firebaseUser?.emailVerified == true) {
+      Get.offAll(() => const Wrapper());
     } else {
       Get.snackbar(
         'Not Verified',
         'Please verify email before reloading.',
-        margin: EdgeInsets.all(30),
+        margin: const EdgeInsets.all(30),
         snackPosition: SnackPosition.BOTTOM,
       );
     }
-  }
-
-  void startAutoDeleteTimer() {
-    Future.delayed(Duration(seconds: 30), () async {
-      final user = FirebaseAuth.instance.currentUser!;
-      await user.reload();
-      if (!user.emailVerified) {
-        await user.delete();
-        if (mounted) {
-          Get.snackbar(
-            "Account Deleted",
-            "Email verification expired. Please sign up again.",
-            margin: EdgeInsets.all(30),
-            snackPosition: SnackPosition.BOTTOM,
-          );
-        }
-        Get.offAll(() => Loginpage());
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Verification"),
+        title: const Text("Verification"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sign Out',
+            onPressed: () async {
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              await authProvider.signOut();
+              Get.offAll(() => const Loginpage());
+            },
+          ),
+        ],
       ),
-      body: Center(
-        child: Text(
-          "Open your mail and click on the link to verify email, then tap the reload button below.",
-          textAlign: TextAlign.center,
+      body: const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.0),
+          child: Text(
+            "Open your mail and click on the link to verify email, then tap the reload button below.",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16),
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: reload,
-        child: Icon(Icons.refresh),
+        child: const Icon(Icons.refresh),
       ),
     );
   }
