@@ -24,7 +24,7 @@ export default function ChangePassword() {
       toast.success('Password updated successfully!');
       navigate('/');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to update password');
+      toast.error(error.message || 'Failed to update password');
     } finally {
       setLoading(false);
     }

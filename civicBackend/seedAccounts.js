@@ -49,7 +49,9 @@ async function seed() {
       const tempPassword = crypto.randomBytes(9).toString('base64url');
       try {
         firebaseUser = await admin.auth().getUserByEmail(u.email);
-        console.log(`✅ Firebase User already exists: ${u.email}`);
+        // Force update existing user password for security
+        await admin.auth().updateUser(firebaseUser.uid, { password: tempPassword });
+        console.log(`✅ Firebase User already exists: ${u.email}. Forced password reset: ${tempPassword}`);
       } catch (err) {
         if (err.code === 'auth/user-not-found') {
           firebaseUser = await admin.auth().createUser({
@@ -67,6 +69,7 @@ async function seed() {
       if (existingMongoUser) {
         existingMongoUser.role = u.role;
         existingMongoUser.department = u.deptCategory;
+        existingMongoUser.mustChangePassword = true; // Force password change flow
         await existingMongoUser.save();
         console.log(`✅ Updated MongoDB User: ${u.email}`);
       } else {

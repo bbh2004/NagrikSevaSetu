@@ -89,7 +89,11 @@ const verifyFirebaseToken = async (req, res, next) => {
     // Enforce password change for staff accounts on first login (Fix B4/G2)
     const isChangePasswordRoute = req.path === '/me/change-password' || 
                                  req.originalUrl.includes('/users/me/change-password');
-    if (dbUser.mustChangePassword && !isChangePasswordRoute) {
+    const isSyncRouteForPassword = req.path === '/sync' || 
+                                   req.path === '/sync/' || 
+                                   req.originalUrl.includes('/users/sync');
+
+    if (dbUser.mustChangePassword && !isChangePasswordRoute && !isSyncRouteForPassword) {
       return res.status(403).json({
         success: false,
         message: 'Password change required before continuing.',
