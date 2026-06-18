@@ -16,6 +16,7 @@
 // ─────────────────────────────────────────────────────────────
 
 const User = require('../models/User');
+const admin = require('firebase-admin');
 
 /**
  * POST /api/users/sync
@@ -97,15 +98,45 @@ const getMyProfile = async (req, res, next) => {
 
 const changePasswordDone = async (req, res, next) => {
   try {
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+    }
+
+    await admin.auth().updateUser(req.dbUser.firebaseUid, {
+      password: newPassword,
+    });
+
     req.dbUser.mustChangePassword = false;
     await req.dbUser.save();
     res.status(200).json({
       success: true,
-      message: 'Password change acknowledged.',
+      message: 'Password successfully changed.',
     });
   } catch (error) {
     next(error);
   }
 };
 
-module.exports = { syncUser, getMyProfile, changePasswordDone };
+const registerFcmToken = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({ success: false, message: 'FCM token is required.' });
+    }
+
+    if (!req.dbUser.fcmTokens.includes(token)) {
+      req.dbUser.fcmTokens.push(token);
+      await req.dbUser.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'FCM token registered successfully.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { syncUser, getMyProfile, changePasswordDone, registerFcmToken };

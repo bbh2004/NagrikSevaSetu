@@ -7,6 +7,7 @@ import Departments from './pages/Departments.jsx' // Will act as Login
 import DepartmentDashboard from './pages/DepartmentDashboard.jsx'
 import ComplaintDetail from './pages/ComplaintDetail.jsx'
 import Analytics from './pages/Analytics.jsx'
+import ChangePassword from './pages/ChangePassword.jsx'
 // Placeholder imports, to be implemented
 // import AdminComplaints from './pages/AdminComplaints.jsx'
 // import DepartmentComplaints from './pages/DepartmentComplaints.jsx'
@@ -79,6 +80,7 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Departments />} />
+            <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/unauthorized" element={
               <div className="flex h-screen w-full items-center justify-center bg-surface">
                 <h1 className="text-3xl text-error font-bold">401 Unauthorized</h1>

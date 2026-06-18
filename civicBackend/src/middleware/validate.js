@@ -90,6 +90,7 @@ const createComplaintSchema = Joi.object({
 // PATCH /api/complaints/:id/status
 const updateStatusSchema = Joi.object({
   status: Joi.string().valid('Pending', 'In Progress', 'Resolved', 'Rejected').required(),
+  note: Joi.string().optional().allow(null, ''),
 });
 
 // POST /api/users/sync

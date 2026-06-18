@@ -21,6 +21,8 @@
 // ─────────────────────────────────────────────────────────────
 
 const Notification = require('../models/Notification');
+const User = require('../models/User');
+const admin = require('firebase-admin');
 
 /**
  * Creates a notification document in MongoDB.
@@ -34,6 +36,26 @@ const createNotification = async ({ userId, complaintId, type, message }) => {
   try {
     const notification = new Notification({ userId, complaintId, type, message });
     await notification.save();
+
+    const user = await User.findById(userId);
+    if (user && user.fcmTokens && user.fcmTokens.length > 0) {
+      const payload = {
+        notification: {
+          title: 'Civic Update',
+          body: message,
+        },
+        data: {
+          complaintId: complaintId.toString(),
+          type: type,
+        }
+      };
+      
+      await admin.messaging().sendEachForMulticast({
+        tokens: user.fcmTokens,
+        ...payload
+      });
+    }
+
     return notification;
   } catch (error) {
     // Notifications are non-critical. We log the error but don't

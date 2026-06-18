@@ -70,6 +70,13 @@ api.interceptors.response.use(
       }
     }
 
+    // Intercept 403 PASSWORD_CHANGE_REQUIRED
+    if (error.response?.status === 403 && error.response?.data?.code === 'PASSWORD_CHANGE_REQUIRED') {
+      if (window.location.pathname !== '/change-password') {
+        window.location.href = '/change-password';
+      }
+    }
+
     // Surface a clean error message from the backend if available
     const message =
       error.response?.data?.message ||

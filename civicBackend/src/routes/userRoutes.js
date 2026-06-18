@@ -4,7 +4,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { syncUser, getMyProfile, changePasswordDone } = require('../controllers/userController');
+const { syncUser, getMyProfile, changePasswordDone, registerFcmToken } = require('../controllers/userController');
 const { verifyFirebaseToken } = require('../middleware/auth');
 const { validate, schemas } = require('../middleware/validate');
 
@@ -19,5 +19,9 @@ router.get('/me', verifyFirebaseToken, getMyProfile);
 // POST /api/users/me/change-password
 // Acknowledge staff password rotation
 router.post('/me/change-password', verifyFirebaseToken, changePasswordDone);
+
+// POST /api/users/fcm-token
+// Register a device FCM token for push notifications
+router.post('/fcm-token', verifyFirebaseToken, registerFcmToken);
 
 module.exports = router;
