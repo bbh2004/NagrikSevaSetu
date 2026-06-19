@@ -53,4 +53,12 @@ class AuthRepository {
     final data = response.data!['data'] as Map<String, dynamic>;
     return UserProfile.fromJson(data);
   }
+
+  /// Sends the FCM device token to the backend for push notifications
+  Future<void> registerFcmToken(String token) async {
+    await _apiClient.post<Map<String, dynamic>>(
+      '/api/users/fcm-token',
+      data: {'token': token},
+    );
+  }
 }

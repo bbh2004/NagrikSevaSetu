@@ -28,3 +28,4 @@ coverage/
 
 #Others
 wipeDB.js
+firebase-admin-key.json

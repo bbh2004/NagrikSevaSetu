@@ -5,6 +5,8 @@
     <!-- Phase 2.3: Required by 'record' package for voice note recording -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+    <!-- Phase 2.5: FCM Push Notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
         android:label="civic"

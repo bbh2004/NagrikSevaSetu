@@ -20,12 +20,14 @@ import 'package:flutter/foundation.dart';
 import '../repositories/auth_repository.dart';
 import '../models/user_profile.dart';
 import '../core/errors/app_exception.dart';
+import '../services/push_notification_service.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _firebaseAuth;
   final AuthRepository _authRepository;
+  PushNotificationService? _pushNotificationService;
 
   AuthStatus _status = AuthStatus.unknown;
   UserProfile? _userProfile;
@@ -95,6 +97,11 @@ class AuthProvider extends ChangeNotifier {
       debugPrint('[AuthProvider] Backend sync successful. Setting status to authenticated.');
       _status = AuthStatus.authenticated;
       _errorMessage = null;
+
+      // Initialize Push Notifications now that user is fully authenticated
+      _pushNotificationService ??= PushNotificationService(authRepository: _authRepository);
+      await _pushNotificationService!.initialize();
+
     } on AppException catch (e) {
       // If sync fails, the user is still Firebase-authenticated but
       // we cannot confirm their backend profile. Keep them in unknown state

@@ -43,6 +43,8 @@ dependencies:
   # path_provider — resolves platform-specific temp/app directories
   # needed to save the audio file before uploading to Cloudinary.
   path_provider: ^2.1.4
+  firebase_messaging: ^16.4.0
+  flutter_local_notifications: ^22.0.1
 
 dev_dependencies:
   flutter_test:
