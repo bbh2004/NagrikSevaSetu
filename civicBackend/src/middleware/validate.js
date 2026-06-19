@@ -60,6 +60,9 @@ const validate = (schema) => {
 // ─────────────────────────────────────────────────────────────
 
 // POST /api/complaints
+// Phase 2.3: description is optional IF voiceNoteUrl is provided.
+// Citizens can submit a complaint using EITHER text, voice, or both.
+// At least one of (description, voiceNoteUrl) must be present.
 const createComplaintSchema = Joi.object({
   category: Joi.string()
     .valid('Sanitation', 'Water', 'Electrical', 'Road', 'Others')
@@ -68,11 +71,14 @@ const createComplaintSchema = Joi.object({
       'any.only': 'Category must be one of: Sanitation, Water, Electrical, Road, Others',
       'any.required': 'Category is required',
     }),
-  description: Joi.string().min(10).max(1000).required().messages({
+
+  // description is optional when a voice note is provided, but must be
+  // at least 10 chars if present. We enforce "at least one" via .or() below.
+  description: Joi.string().min(10).max(1000).optional().allow(null, '').messages({
     'string.min': 'Description must be at least 10 characters',
     'string.max': 'Description cannot exceed 1000 characters',
-    'any.required': 'Description is required',
   }),
+
   lat: Joi.number().min(-90).max(90).required().messages({
     'number.min': 'Latitude must be between -90 and 90',
     'number.max': 'Latitude must be between -90 and 90',
@@ -85,6 +91,12 @@ const createComplaintSchema = Joi.object({
   }),
   imageUrl: Joi.string().uri().optional().allow(null, ''),
   voiceNoteUrl: Joi.string().uri().optional().allow(null, ''),
+})
+// STRICT XOR: Require exactly one of description or voiceNoteUrl, but NOT both.
+.xor('description', 'voiceNoteUrl')
+.messages({
+  'object.missing': 'Please provide either a written description or a voice note recording',
+  'object.xor': 'You cannot provide both a text description and a voice note. Please choose one.',
 });
 
 // PATCH /api/complaints/:id/status

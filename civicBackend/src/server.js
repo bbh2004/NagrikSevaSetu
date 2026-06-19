@@ -49,13 +49,19 @@ const startServer = async () => {
       console.log('  POST   /api/complaints');
       console.log('  GET    /api/complaints/mine');
       console.log('  GET    /api/complaints/stats');
+      console.log('  GET    /api/complaints/nearby');
+      console.log('  GET    /api/complaints/map');
       console.log('  GET    /api/complaints/:id');
       console.log('  PATCH  /api/complaints/:id/status');
       console.log('  POST   /api/complaints/:id/upvote');
+      console.log('  DELETE /api/complaints/:id');
       console.log('  GET    /api/notifications');
       console.log('  PATCH  /api/notifications/:id/read');
       console.log('  PATCH  /api/notifications/read-all');
-      console.log('  GET    /api/upload/signature');
+      console.log('  GET    /api/upload/signature?type=image   (Phase 2.3: image)');
+      console.log('  GET    /api/upload/signature?type=audio   (Phase 2.3: voice notes)');
+      console.log('\nAI Urgency Engine: Groq llama-3.1-8b-instant');
+      console.log('Voice Transcription: Groq whisper-large-v3-turbo');
       console.log('\nPress Ctrl+C to stop.\n');
     });
 

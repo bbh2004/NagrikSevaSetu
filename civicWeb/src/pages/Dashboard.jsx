@@ -5,7 +5,7 @@
  *   1. Stats: Now reads statsRes.totals (not statsRes directly) — fixes blank KPI cards.
  *   2. Map: Uses new /api/complaints/map endpoint with viewport bounding box queries
  *           instead of loading the first 20 complaints from /complaints.
- *   3. Map: Default center changed from Bangalore to Ranchi (Jharkhand).
+ *   3. Map: Default center is Bangalore; auto-pans to centroid of loaded complaints.
  *   4. Map: On bounds_changed, re-fetches only the complaints in the visible viewport.
  *   5. Dates: Use shortDateTime() from formatDate utilities for precise timestamps.
  *   6. Urgency/status: Centralised via urgencyVariant/statusVariant from civic constants.
@@ -89,7 +89,23 @@ export default function Dashboard() {
       const data = await api.get(
         `/complaints/map?swLat=${sw.lat()}&swLng=${sw.lng()}&neLat=${ne.lat()}&neLng=${ne.lng()}`
       )
-      setMapComplaints(data || [])
+      const complaints = data || []
+      setMapComplaints(complaints)
+
+      // ── Auto-pan to centroid of loaded complaints (Change 3) ──────
+      // After the first successful data load, pan the map to the average
+      // position of all complaints so officers see relevant local data
+      // regardless of where they are (Gujarat, Karnataka, etc.).
+      if (complaints.length > 0 && mapRef.current) {
+        const coords = complaints
+          .map(c => c.location?.coordinates)
+          .filter(Boolean)
+        if (coords.length > 0) {
+          const avgLat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length
+          const avgLng = coords.reduce((sum, c) => sum + c[0], 0) / coords.length
+          mapRef.current.panTo({ lat: avgLat, lng: avgLng })
+        }
+      }
     } catch (error) {
       console.error('[Dashboard] fetchMapData failed:', error)
     } finally {

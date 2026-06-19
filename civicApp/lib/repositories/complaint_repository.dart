@@ -12,10 +12,12 @@
 //   GET    /api/complaints/mine          → getMyComplaints
 //   GET    /api/complaints/:id           → getComplaintById
 //   POST   /api/complaints/:id/upvote    → toggleUpvote
-//   GET    /api/upload/signature         → getUploadSignature
+//   GET    /api/upload/signature?type=image → _uploadImageToCloudinary
+//   GET    /api/upload/signature?type=audio → uploadVoiceNote (Phase 2.3)
 // ─────────────────────────────────────────────────────────────
 
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
@@ -107,7 +109,7 @@ class ComplaintRepository {
       '/api/complaints',
       data: {
         'category': category,
-        'description': description,
+        if (description.isNotEmpty) 'description': description,
         'lat': lat,
         'lng': lng,
         if (imageUrl != null) 'imageUrl': imageUrl,
@@ -135,12 +137,12 @@ class ComplaintRepository {
     );
   }
 
-  // ── Private: Cloudinary Signed Upload ────────────────────────
+  // ── Private: Cloudinary Signed Upload (Image) ───────────────
 
   /// Securely uploads an image to Cloudinary.
   ///
-  /// Step 1: GET /api/upload/signature → backend returns a time-limited
-  ///         signature generated from the Cloudinary API Secret.
+  /// Step 1: GET /api/upload/signature?type=image → backend returns a
+  ///         time-limited signature from the Cloudinary API Secret.
   /// Step 2: POST directly to Cloudinary using that signature.
   ///
   /// This is secure because the API Secret never leaves the backend.
@@ -148,6 +150,7 @@ class ComplaintRepository {
     // 1. Get signed upload params from the backend
     final sigResponse = await _apiClient.get<Map<String, dynamic>>(
       '/api/upload/signature',
+      queryParameters: {'type': 'image'},
     );
     final sigData = sigResponse.data!['data'] as Map<String, dynamic>;
 
@@ -184,5 +187,67 @@ class ComplaintRepository {
     );
 
     return cloudinaryResponse.data!['secure_url'] as String;
+  }
+
+  // ── Public: Cloudinary Signed Upload (Audio / Voice Note) ────
+
+  /// Securely uploads a voice note audio file to Cloudinary.
+  ///
+  /// Uses the same signed-upload pattern as images, but requests
+  /// a signature with type=audio so the backend routes it to the
+  /// 'civic_voice_notes' folder with audio-appropriate settings.
+  ///
+  /// Throws [AppException] on failure.
+  /// The caller ([SubmitComplaintScreen]) should delete the local file
+  /// after this returns successfully.
+  ///
+  /// @param file - The local audio file produced by VoiceNoteService.
+  /// @returns    - The secure Cloudinary URL of the uploaded audio.
+  Future<String> uploadVoiceNote(File file) async {
+    // 1. Get audio-specific signed upload params from the backend
+    final sigResponse = await _apiClient.get<Map<String, dynamic>>(
+      '/api/upload/signature',
+      queryParameters: {'type': 'audio'},
+    );
+    final sigData = sigResponse.data!['data'] as Map<String, dynamic>;
+
+    final String cloudName   = sigData['cloudName']?.toString()
+        ?? AppConfig.cloudinaryCloudName;
+    final String apiKey      = sigData['apiKey']?.toString() ?? '';
+    final String signature   = sigData['signature']?.toString() ?? '';
+    final int    timestamp   = (sigData['timestamp'] as num).toInt();
+    final String folder      = sigData['folder']?.toString() ?? 'civic_voice_notes';
+    final String uploadPreset = sigData['uploadPreset']?.toString()
+        ?? AppConfig.cloudinaryUploadPreset;
+
+    // Determine MIME type from file extension (.m4a, .mp3, etc.)
+    final mimeType = lookupMimeType(file.path) ?? 'audio/mp4';
+    final parts = mimeType.split('/');
+
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(
+        file.path,
+        contentType: MediaType(parts[0], parts[1]),
+      ),
+      'api_key': apiKey,
+      'timestamp': timestamp.toString(),
+      'signature': signature,
+      'folder': folder,
+      'upload_preset': uploadPreset,
+      // Cloudinary uses 'video' resource_type for audio files
+      'resource_type': 'video',
+    });
+
+    // Upload directly to Cloudinary (bypasses our backend — keeps it fast)
+    // Note: Cloudinary audio uploads go through /v1_1/{cloud}/video/upload
+    final cloudinaryDio = Dio();
+    final cloudinaryResponse = await cloudinaryDio.post<Map<String, dynamic>>(
+      'https://api.cloudinary.com/v1_1/$cloudName/video/upload',
+      data: formData,
+    );
+
+    final secureUrl = cloudinaryResponse.data!['secure_url'] as String;
+    debugPrint('[ComplaintRepository] Voice note uploaded: $secureUrl');
+    return secureUrl;
   }
 }

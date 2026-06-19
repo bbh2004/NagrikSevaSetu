@@ -36,6 +36,14 @@ dependencies:
   image_picker: ^1.2.0
   geolocator: ^14.0.2
 
+  # ── Audio Recording (Phase 2.3) ───────────────────────────────
+  # 'record' — cross-platform audio recording for Android/iOS.
+  # Chosen over flutter_sound for its simpler API and active maintenance.
+  record: ^5.2.0
+  # path_provider — resolves platform-specific temp/app directories
+  # needed to save the audio file before uploading to Cloudinary.
+  path_provider: ^2.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -82,6 +82,14 @@ const complaintSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    // Transcript produced by Groq Whisper after upload (Phase 2.3)
+    // Stored so the web portal can display the transcription without
+    // needing to re-process the audio.
+    voiceNoteTranscript: {
+      type: String,
+      default: null,
+      trim: true,
+    },
     // Upvote count - denormalized for fast reads (no aggregation needed)
     upvotes: {
       type: Number,

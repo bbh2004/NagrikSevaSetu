@@ -27,9 +27,13 @@ export const CATEGORY_META = {
   Others:     { label: 'Others',     icon: '📋', color: '#8b5cf6' },
 }
 
-// Map default center — Ranchi (capital of Jharkhand, the project's target state)
-export const MAP_DEFAULT_CENTER = { lat: 23.3441, lng: 85.3096 }
-export const MAP_DEFAULT_ZOOM   = 13
+// Map default center — Bangalore (Bengaluru), Karnataka.
+// Default zoom 12 gives a good city-wide overview.
+// The Dashboard and DepartmentDashboard components dynamically pan to
+// the centroid of loaded complaints once data arrives, so this is only
+// the initial load position for officers logging in for the first time.
+export const MAP_DEFAULT_CENTER = { lat: 12.9716, lng: 77.5946 }
+export const MAP_DEFAULT_ZOOM   = 12
 
 // Urgency badge variant mapping for the ui.jsx Badge component
 export const urgencyVariant = (urgency) => {

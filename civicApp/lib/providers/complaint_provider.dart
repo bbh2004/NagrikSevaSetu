@@ -174,6 +174,15 @@ class ComplaintProvider extends ChangeNotifier {
     }
   }
 
+  /// Uploads a voice note file to Cloudinary via the backend signed upload.
+  ///
+  /// Returns the secure Cloudinary URL on success, throws on failure.
+  /// The UI layer should show a loading indicator while this runs.
+  Future<String> uploadVoiceNote(File audioFile) async {
+    // Delegate directly to repository — no local state needed.
+    return _repository.uploadVoiceNote(audioFile);
+  }
+
   /// Clears all loaded complaint data (called on sign-out).
   void clearAll() {
     _allComplaints = [];

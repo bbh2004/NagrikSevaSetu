@@ -41,8 +41,10 @@ const createComplaint = async (dbUser, firebaseUid, data) => {
 
   const savedComplaint = await complaint.save();
 
-  // Trigger AI urgency detection asynchronously
-  detectAndUpdateUrgency(savedComplaint._id.toString(), description);
+  // Trigger AI urgency detection asynchronously (fire-and-forget).
+  // Pass voiceNoteUrl so the service can also transcribe the audio
+  // and use the combined text for a more accurate urgency classification.
+  detectAndUpdateUrgency(savedComplaint._id.toString(), description, voiceNoteUrl || null);
 
   return serializeComplaint(savedComplaint, dbUser);
 };
