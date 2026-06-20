@@ -61,7 +61,7 @@ const validate = (schema) => {
 
 // POST /api/complaints
 // Phase 2.3: description is optional IF voiceNoteUrl is provided.
-// Citizens can submit a complaint using EITHER text, voice, or both.
+// Citizens can submit a complaint using EITHER text OR voice.
 // At least one of (description, voiceNoteUrl) must be present.
 const createComplaintSchema = Joi.object({
   category: Joi.string()
@@ -73,8 +73,8 @@ const createComplaintSchema = Joi.object({
     }),
 
   // description is optional when a voice note is provided, but must be
-  // at least 10 chars if present. We enforce "at least one" via .or() below.
-  description: Joi.string().min(10).max(1000).optional().allow(null, '').messages({
+  // at least 10 chars if present. We enforce "at least one" via .xor() below.
+  description: Joi.string().min(10).max(1000).optional().empty('').allow(null).messages({
     'string.min': 'Description must be at least 10 characters',
     'string.max': 'Description cannot exceed 1000 characters',
   }),
@@ -90,7 +90,9 @@ const createComplaintSchema = Joi.object({
     'any.required': 'Longitude is required',
   }),
   imageUrl: Joi.string().uri().optional().allow(null, ''),
-  voiceNoteUrl: Joi.string().uri().optional().allow(null, ''),
+  voiceNoteUrl: Joi.string().uri().pattern(new RegExp(`^https://res\\.cloudinary\\.com/${process.env.CLOUDINARY_CLOUD_NAME}/video/upload/`)).optional().allow(null, '').messages({
+    'string.pattern.base': 'voiceNoteUrl must be a valid Cloudinary asset URL.',
+  }),
 })
 // STRICT XOR: Require exactly one of description or voiceNoteUrl, but NOT both.
 .xor('description', 'voiceNoteUrl')

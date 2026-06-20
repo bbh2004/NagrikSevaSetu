@@ -92,20 +92,7 @@ export default function Dashboard() {
       const complaints = data || []
       setMapComplaints(complaints)
 
-      // ── Auto-pan to centroid of loaded complaints (Change 3) ──────
-      // After the first successful data load, pan the map to the average
-      // position of all complaints so officers see relevant local data
-      // regardless of where they are (Gujarat, Karnataka, etc.).
-      if (complaints.length > 0 && mapRef.current) {
-        const coords = complaints
-          .map(c => c.location?.coordinates)
-          .filter(Boolean)
-        if (coords.length > 0) {
-          const avgLat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length
-          const avgLng = coords.reduce((sum, c) => sum + c[0], 0) / coords.length
-          mapRef.current.panTo({ lat: avgLat, lng: avgLng })
-        }
-      }
+
     } catch (error) {
       console.error('[Dashboard] fetchMapData failed:', error)
     } finally {

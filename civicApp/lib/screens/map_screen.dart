@@ -15,6 +15,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import '../providers/complaint_provider.dart';
 import '../widgets/upvote_button.dart';
+import '../services/location_service.dart';
 
 // ── Bangalore city center — default starting position
 const _kBangaloreLatLng = LatLng(12.9716, 77.5946);
@@ -36,9 +37,9 @@ class _MapScreenState extends State<MapScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<ComplaintProvider>();
       if (provider.allComplaints.isEmpty) {
-        provider.loadAllComplaints().then((_) => _panToCentroid());
+        provider.loadAllComplaints().then((_) => _panToUserLocation());
       } else {
-        _panToCentroid();
+        _panToUserLocation();
       }
     });
   }
@@ -49,31 +50,26 @@ class _MapScreenState extends State<MapScreen> {
     super.dispose();
   }
 
-  /// Computes the geographic centroid of all loaded complaints and pans there.
+  /// Pans the map to the user's current geographic location.
   ///
-  /// If there are no complaints, the map stays at the Bangalore default.
   /// This ensures officers/citizens in any Indian state see their region
   /// without having to manually scroll.
-  void _panToCentroid() {
+  Future<void> _panToUserLocation() async {
     if (_mapController == null) return;
-    final complaints = context.read<ComplaintProvider>().allComplaints;
-    if (complaints.isEmpty) return;
-
-    // Filter out any complaints with zero coordinates (data issue safety)
-    final valid = complaints.where((c) => c.lat != 0 || c.lng != 0).toList();
-    if (valid.isEmpty) return;
-
-    final avgLat = valid.map((c) => c.lat).reduce((a, b) => a + b) / valid.length;
-    final avgLng = valid.map((c) => c.lng).reduce((a, b) => a + b) / valid.length;
-
-    _mapController!.animateCamera(
-      CameraUpdate.newCameraPosition(
-        CameraPosition(
-          target: LatLng(avgLat, avgLng),
-          zoom: _kDefaultZoom,
+    try {
+      final pos = await LocationService().getCurrentLocation();
+      if (!mounted) return;
+      _mapController!.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: LatLng(pos.latitude, pos.longitude),
+            zoom: _kDefaultZoom,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      debugPrint('Failed to get user location: $e');
+    }
   }
 
   @override
@@ -86,8 +82,8 @@ class _MapScreenState extends State<MapScreen> {
           // Re-center button
           IconButton(
             icon: const Icon(Icons.my_location),
-            tooltip: 'Re-center to complaints',
-            onPressed: _panToCentroid,
+            tooltip: 'Re-center to my location',
+            onPressed: _panToUserLocation,
           ),
         ],
       ),
@@ -152,7 +148,7 @@ class _MapScreenState extends State<MapScreen> {
               _mapController = controller;
               // If complaints are already loaded, pan now
               if (complaints.isNotEmpty) {
-                _panToCentroid();
+                _panToUserLocation();
               }
             },
           );

@@ -239,14 +239,33 @@ const transcribeVoiceNote = async (audioUrl) => {
   try {
     const client = getGroqClient();
 
-    // Fetch the audio as a binary buffer, then wrap it for the SDK.
-    // Groq's Node SDK accepts a File-like object created with a Buffer.
-    const audioResponse = await fetch(audioUrl);
-    if (!audioResponse.ok) {
-      throw new Error(`Failed to fetch audio: HTTP ${audioResponse.status}`);
-    }
+    // Fetch the audio as a binary stream, then wrap it for the SDK.
+    // Use AbortController and strict size limits as defense against DoS/SSRF.
+    const MAX_AUDIO_BYTES = 5 * 1024 * 1024; // 5 MB
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000); // 10s timeout
+    let audioBuffer;
 
-    const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
+    try {
+      const audioResponse = await fetch(audioUrl, { signal: controller.signal });
+      if (!audioResponse.ok) {
+        throw new Error(`Failed to fetch audio: HTTP ${audioResponse.status}`);
+      }
+
+      const contentLength = Number(audioResponse.headers.get('content-length') || 0);
+      if (contentLength > MAX_AUDIO_BYTES) throw new Error('Audio file exceeds size limit.');
+
+      const chunks = [];
+      let received = 0;
+      for await (const chunk of audioResponse.body) {
+        received += chunk.length;
+        if (received > MAX_AUDIO_BYTES) throw new Error('Audio stream exceeded size limit mid-transfer.');
+        chunks.push(chunk);
+      }
+      audioBuffer = Buffer.concat(chunks);
+    } finally {
+      clearTimeout(timeout);
+    }
 
     // Groq SDK needs a File object. We create a File-like blob from the buffer.
     // We derive the MIME type from the URL extension.
