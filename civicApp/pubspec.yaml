@@ -31,7 +31,7 @@ dependencies:
   get: ^4.7.2
 
   # ── Device Features ───────────────────────────────────────────
-  google_maps_flutter: 2.13.1
+  google_maps_flutter: ^2.17.1
   location: ^8.0.1
   image_picker: ^1.2.0
   geolocator: ^14.0.2
@@ -39,17 +39,18 @@ dependencies:
   # ── Audio Recording (Phase 2.3) ───────────────────────────────
   # 'record' — cross-platform audio recording for Android/iOS.
   # Chosen over flutter_sound for its simpler API and active maintenance.
-  record: ^5.2.0
+  record: ^6.2.1
   # path_provider — resolves platform-specific temp/app directories
   # needed to save the audio file before uploading to Cloudinary.
   path_provider: ^2.1.4
   firebase_messaging: ^16.4.0
   flutter_local_notifications: ^22.0.1
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true

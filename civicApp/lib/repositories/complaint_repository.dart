@@ -219,6 +219,7 @@ class ComplaintRepository {
     final String folder      = sigData['folder']?.toString() ?? 'civic_voice_notes';
     final String uploadPreset = sigData['uploadPreset']?.toString()
         ?? AppConfig.cloudinaryUploadPreset;
+    final String? allowedFormats = sigData['allowedFormats']?.toString();
 
     // Determine MIME type from file extension (.m4a, .mp3, etc.)
     final mimeType = lookupMimeType(file.path) ?? 'audio/mp4';
@@ -234,6 +235,7 @@ class ComplaintRepository {
       'signature': signature,
       'folder': folder,
       'upload_preset': uploadPreset,
+      if (allowedFormats != null) 'allowed_formats': allowedFormats,
       // Cloudinary uses 'video' resource_type for audio files
       'resource_type': 'video',
     });

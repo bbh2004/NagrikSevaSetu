@@ -8,9 +8,9 @@ Common backend for **civicApp (Flutter)** and **civicWeb (React)**.
 civicApp (Flutter)  ──┐
                        ├──► civicBackend (Express) ──► MongoDB Atlas
 civicWeb (React)    ──┘        │
-                               └──► Firebase Admin (verify tokens)
-                               └──► Cloudinary (media uploads)
-                               └──► Gemini API (urgency AI)
+                               └──► Firebase Admin (Auth & FCM Push)
+                               └──► Cloudinary (Image & Voice media)
+                               └──► Groq API (Urgency AI & Whisper transcription)
 ```
 
 ---
@@ -140,10 +140,10 @@ Call this immediately after every Firebase sign-in. Creates user in MongoDB if n
   "lat": 18.5204,
   "lng": 73.8567,
   "imageUrl": "https://res.cloudinary.com/dmecx8pcz/image/upload/...",
-  "voiceNoteUrl": null
+  "voiceNoteUrl": "https://res.cloudinary.com/dmecx8pcz/video/upload/..."
 }
 ```
-> Note: `imageUrl` is optional. Upload to Cloudinary first (or use `/api/upload/signature`), then pass the URL here.
+> Note: `imageUrl` and `voiceNoteUrl` are optional (but you must provide either text description or voice note). Upload to Cloudinary first using `/api/upload/signature?type=image|audio`, then pass the URL here.
 
 #### GET /api/complaints (Query Params)
 ```
@@ -203,8 +203,8 @@ civicBackend/
 │   │   ├── notificationRoutes.js
 │   │   └── uploadRoutes.js
 │   ├── services/
-│   │   ├── notificationService.js  # Business logic for notifications
-│   │   └── urgencyService.js       # Gemini AI urgency detection
+│   │   ├── notificationService.js  # Business logic & FCM Multicast Push
+│   │   ├── urgencyService.js       # Groq LLaMA urgency & Whisper audio transcription
 │   ├── app.js             # Express app (middleware + routes)
 │   └── server.js          # Entry point (DB connect + listen)
 ├── tests/

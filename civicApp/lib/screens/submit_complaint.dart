@@ -27,13 +27,22 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/complaint_provider.dart';
 import '../services/location_service.dart';
 import '../services/voice_note_service.dart';
 
 class SubmitComplaintScreen extends StatefulWidget {
   final String initialCategory;
-  const SubmitComplaintScreen({super.key, required this.initialCategory});
+  final File? recoveredImage;
+  final String? recoveredDesc;
+
+  const SubmitComplaintScreen({
+    super.key, 
+    required this.initialCategory,
+    this.recoveredImage,
+    this.recoveredDesc,
+  });
 
   @override
   State<SubmitComplaintScreen> createState() => _SubmitComplaintScreenState();
@@ -66,6 +75,13 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
       vsync: this,
       duration: const Duration(milliseconds: 700),
     )..repeat(reverse: true);
+
+    if (widget.recoveredDesc != null) {
+      _descController.text = widget.recoveredDesc!;
+    }
+    if (widget.recoveredImage != null) {
+      _imageFile = widget.recoveredImage;
+    }
   }
 
   @override
@@ -76,13 +92,61 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
     super.dispose();
   }
 
-  // ── Image handling ─────────────────────────────────────────
   Future<void> _pickImage() async {
+    final source = await showDialog<ImageSource>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Choose Photo Source'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Camera'),
+              subtitle: const Text('May restart app on some devices'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Gallery'),
+              subtitle: const Text('More stable, recommended'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    if (source == ImageSource.camera) {
+      // Option 2: Save state before opening camera to recover it if OS kills app
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('pending_complaint', true);
+        await prefs.setString('pending_category', widget.initialCategory);
+        await prefs.setString('pending_desc', _descController.text);
+      } catch (e) {
+        debugPrint('Failed to save state: $e');
+      }
+    }
+
     final picker = ImagePicker();
-    final picked =
-        await picker.pickImage(source: ImageSource.camera, imageQuality: 80);
-    if (picked != null && mounted) {
-      setState(() => _imageFile = File(picked.path));
+    try {
+      final picked = await picker.pickImage(
+        source: source,
+        imageQuality: 70, // Slightly reduced to save memory
+        maxWidth: 1200,   // Prevent 48MP raw images from crashing the app
+        maxHeight: 1200,
+      );
+      if (picked != null && mounted) {
+        setState(() => _imageFile = File(picked.path));
+      }
+    } catch (e) {
+      debugPrint("Image picker error: $e");
+      if (mounted) {
+        _showSnack("Could not capture image. Try again.", isError: true);
+      }
     }
   }
 
@@ -192,6 +256,11 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
     final descriptionText = _descController.text.trim();
     final hasVoiceNote = _recordedAudioFile != null;
     final hasText = descriptionText.isNotEmpty;
+
+    if (_imageFile == null) {
+      _showSnack('Please capture a photo. A photo is compulsory.');
+      return;
+    }
 
     // Strict XOR: User must provide text OR voice, not both.
     if (!hasVoiceNote && (!hasText || descriptionText.length < 10)) {
@@ -369,12 +438,12 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
             const SizedBox(height: 20),
 
             // ── Voice Note Section (Phase 2.3) ─────────────────
-            _buildSectionLabel('Voice Note (Optional)'),
+            _buildSectionLabel('Voice Note * (Or provide a text description)'),
             _buildVoiceNoteSection(),
             const SizedBox(height: 20),
 
             // ── Photo Section ──────────────────────────────────
-            _buildSectionLabel('Photo (Optional)'),
+            _buildSectionLabel('Photo * (Compulsory)'),
             _buildImageSection(),
             const SizedBox(height: 32),
 

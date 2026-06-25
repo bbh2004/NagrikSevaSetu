@@ -1,8 +1,11 @@
 // lib/screens/home_screen.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/complaint_provider.dart';
@@ -36,17 +39,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   final LocationService _locationService = LocationService();
   Position? _currentPosition;
+  bool _isRestoring = true;
 
   @override
   void initState() {
     super.initState();
     _setupAnimations();
-    _startAnimations();
-    _fetchUserLocation();
-    // Load complaints when the screen initializes
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ComplaintProvider>().loadAllComplaints();
-    });
+    _checkLostCameraData();
   }
 
   Future<void> _fetchUserLocation() async {
@@ -57,6 +56,50 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       });
     } catch (e) {
       debugPrint('Location error: $e');
+    }
+  }
+
+  Future<void> _checkLostCameraData() async {
+    try {
+      final picker = ImagePicker();
+      final response = await picker.retrieveLostData();
+      
+      final prefs = await SharedPreferences.getInstance();
+      final pending = prefs.getBool('pending_complaint') ?? false;
+
+      if (pending) {
+        final savedCategory = prefs.getString('pending_category') ?? 'Others';
+        final savedDesc = prefs.getString('pending_desc');
+        
+        // Clear immediately so it doesn't trigger again
+        await prefs.remove('pending_complaint');
+        await prefs.remove('pending_category');
+        await prefs.remove('pending_desc');
+
+        if (!response.isEmpty && response.file != null && mounted) {
+          // Push user directly back into the complaint form without a visual jump
+          await Navigator.push(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => SubmitComplaintScreen(
+                initialCategory: savedCategory,
+                recoveredDesc: savedDesc,
+                recoveredImage: File(response.file!.path),
+              ),
+              transitionDuration: Duration.zero,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error recovering lost camera data: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isRestoring = false);
+        _startAnimations();
+        _fetchUserLocation();
+        context.read<ComplaintProvider>().loadAllComplaints();
+      }
     }
   }
 
@@ -159,6 +202,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    if (_isRestoring) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: const Center(
+          // Minimal spinner to look natural while loading image from OS
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: RefreshIndicator(

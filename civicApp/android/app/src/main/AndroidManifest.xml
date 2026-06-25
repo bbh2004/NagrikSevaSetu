@@ -11,6 +11,7 @@
     <application
         android:label="civic"
         android:name="${applicationName}"
+        android:largeHeap="true"
         android:icon="@mipmap/ic_launcher">
         <meta-data android:name="com.google.android.geo.API_KEY" android:value="AIzaSyDnxZa12z-pe_9sCVzA0bXx41osOPzzo8o"/>
         <activity

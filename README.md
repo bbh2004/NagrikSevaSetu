@@ -42,7 +42,9 @@ The system intelligently reduces duplicate complaints, improves response accurac
 
 - ✅ **End-to-end complaint tracking** from submission to resolution with audit logs
 - 🔄 **Duplicate prevention** via geolocation-based nearby check and upvoting system
-- 🤖 **AI-driven urgency classification** for critical issues (Gemini Integration)
+- 🤖 **AI-driven urgency classification** for critical issues (Groq LLaMA-3.1 Integration)
+- 🎙️ **Voice Notes translation & transcription** via Groq Whisper AI
+- 🔔 **Real-time Push Notifications** via Firebase Cloud Messaging (FCM)
 - 🗺️ **Interactive map visualization** using Google Maps
 - 📊 **Analytics dashboard** for municipal insights
 - 🔥 **REST API synchronization** across mobile app and web dashboard via a custom Express/MongoDB backend
@@ -62,6 +64,7 @@ The citizen-facing mobile application provides an intuitive interface for report
 
 #### 📝 Complaint Submission
 - 📸 Upload issue photographs
+- 🎙️ Record optional voice notes describing the issue
 - ✍️ Add detailed descriptions
 - 📍 Auto-capture GPS coordinates (latitude & longitude)
 - 🏷️ Categorize by department (Water, Sanitation, Electrical, Roads, etc.)
@@ -80,9 +83,9 @@ The citizen-facing mobile application provides an intuitive interface for report
 
 #### 🎨 UI Enhancements
 - 🌓 Light/Dark mode support
-- 🗺️ Integrated map view
+- 🗺️ Integrated map view with dynamic centroid panning
 - 📱 Responsive design
-- 🔔 Push notifications for status updates
+- 🔔 Push notifications (FCM) for live status updates
 
 ---
 
@@ -155,9 +158,10 @@ A comprehensive, role-based dashboard for municipal authorities to efficiently m
 | Technology | Purpose |
 |------------|---------|
 | **Google Firebase** | Backend as a Service (BaaS) |
-| **Cloud Firestore** | NoSQL database |
-| **Firebase Storage** | Image and file storage |
-| **Firebase Cloud Functions** | Serverless computing |
+| **Firebase Admin (FCM)** | Push notifications & auth token verification |
+| **Cloud Firestore** | NoSQL database (optional extensions) |
+| **Cloudinary** | Image and Voice audio storage |
+| **Groq API** | Fast AI Inference (LLaMA-3.1 for Urgency, Whisper for Audio) |
 
 ---
 

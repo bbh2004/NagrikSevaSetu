@@ -25,7 +25,7 @@ const createComplaint = async (dbUser, firebaseUid, data) => {
     userId: dbUser._id,
     firebaseUid,
     category,
-    description,
+    description: description || '',
     location,
     imageUrl: imageUrl || null,
     voiceNoteUrl: voiceNoteUrl || null,

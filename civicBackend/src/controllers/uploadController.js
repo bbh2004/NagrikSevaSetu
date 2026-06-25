@@ -53,15 +53,14 @@ const getUploadSignature = (req, res, next) => {
         ? `civic_voice_notes/${req.dbUser._id}`
         : `civic_complaints/${req.dbUser._id}`;
 
+    const allowedAudioFormats = 'mp3,mp4,m4a,wav,webm,ogg,flac,aac';
+
     const paramsToSign = {
       timestamp,
       folder,
       upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET || 'civic_sih2025',
       ...(uploadType === 'audio' && {
-        resource_type: AUDIO_RESOURCE_TYPE,
-        // Restrict audio duration to ~5 minutes to prevent abuse
-        // (Cloudinary accepts this as an incoming transformation)
-        allowed_formats: 'mp3,mp4,m4a,wav,webm,ogg,flac,aac',
+        allowed_formats: allowedAudioFormats,
       }),
     };
 
@@ -82,6 +81,7 @@ const getUploadSignature = (req, res, next) => {
         uploadType,
         resourceType: uploadType === 'audio' ? AUDIO_RESOURCE_TYPE : 'image',
         maxFileSizeBytes: uploadType === 'audio' ? MAX_AUDIO_BYTES : undefined,
+        allowedFormats: uploadType === 'audio' ? allowedAudioFormats : undefined,
       },
     });
   } catch (error) {
