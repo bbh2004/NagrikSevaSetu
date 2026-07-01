@@ -38,7 +38,7 @@ class SubmitComplaintScreen extends StatefulWidget {
   final String? recoveredDesc;
 
   const SubmitComplaintScreen({
-    super.key, 
+    super.key,
     required this.initialCategory,
     this.recoveredImage,
     this.recoveredDesc,
@@ -140,7 +140,7 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
       final picked = await picker.pickImage(
         source: source,
         imageQuality: 70, // Slightly reduced to save memory
-        maxWidth: 1200,   // Prevent 48MP raw images from crashing the app
+        maxWidth: 1200, // Prevent 48MP raw images from crashing the app
         maxHeight: 1200,
       );
       if (picked != null && mounted) {
@@ -287,7 +287,6 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
       return;
     }
 
-
     try {
       // Cache provider reference BEFORE any await to avoid BuildContext
       // across async gap lint warning (use_build_context_synchronously).
@@ -323,13 +322,13 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
 
       // Step 2: Submit complaint (image upload happens inside the provider)
       final error = await provider.submitComplaint(
-            category: widget.initialCategory,
-            description: descriptionText,
-            lat: position.latitude,
-            lng: position.longitude,
-            imageFile: _imageFile,
-            voiceNoteUrl: voiceNoteUrl,
-          );
+        category: widget.initialCategory,
+        description: descriptionText,
+        lat: position.latitude,
+        lng: position.longitude,
+        imageFile: _imageFile,
+        voiceNoteUrl: voiceNoteUrl,
+      );
 
       if (!mounted) return;
 
@@ -391,13 +390,8 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
     final isSubmitting = context.watch<ComplaintProvider>().isSubmitting;
     final isBusy = isSubmitting || _isUploadingAudio;
     final bool hasVoice = _recordedAudioFile != null;
-    final bool hasText = _descController.text.trim().isNotEmpty;
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Submit Complaint'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Submit Complaint'), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -417,7 +411,10 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
                   const SizedBox(width: 8),
                   Text(
                     widget.initialCategory,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ],
               ),
@@ -474,9 +471,12 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
                   _isUploadingAudio
                       ? 'Uploading voice note...'
                       : isSubmitting
-                          ? 'Submitting...'
-                          : 'Submit Complaint',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ? 'Submitting...'
+                      : 'Submit Complaint',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -503,7 +503,12 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
         if (_imageFile != null) ...[
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.file(_imageFile!, height: 180, width: double.infinity, fit: BoxFit.cover),
+            child: Image.file(
+              _imageFile!,
+              height: 180,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
           ),
           const SizedBox(height: 8),
           Row(
@@ -520,7 +525,10 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
                 child: OutlinedButton.icon(
                   onPressed: () => setState(() => _imageFile = null),
                   icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  label: const Text('Remove', style: TextStyle(color: Colors.red)),
+                  label: const Text(
+                    'Remove',
+                    style: TextStyle(color: Colors.red),
+                  ),
                 ),
               ),
             ],
@@ -547,9 +555,7 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
               : Theme.of(context).colorScheme.outline,
         ),
         borderRadius: BorderRadius.circular(12),
-        color: _isRecording
-            ? Colors.red.withValues(alpha: 0.04)
-            : null,
+        color: _isRecording ? Colors.red.withValues(alpha: 0.04) : null,
       ),
       child: Column(
         children: [
@@ -563,7 +569,9 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
                   return Icon(
                     _isRecording ? Icons.mic : Icons.mic_none,
                     color: _isRecording
-                        ? Colors.red.withValues(alpha: 0.4 + 0.6 * _recordingPulseController.value)
+                        ? Colors.red.withValues(
+                            alpha: 0.4 + 0.6 * _recordingPulseController.value,
+                          )
                         : Theme.of(context).colorScheme.primary,
                     size: 28,
                   );
@@ -578,8 +586,8 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
                       _isRecording
                           ? 'Recording...'
                           : _recordedAudioFile != null
-                              ? 'Voice note recorded'
-                              : 'No voice note',
+                          ? 'Voice note recorded'
+                          : 'No voice note',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         color: _isRecording ? Colors.red : null,
@@ -636,11 +644,11 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
                     onPressed: hasText ? null : _toggleRecording,
                     icon: const Icon(Icons.mic),
                     label: Text(
-                      hasText 
+                      hasText
                           ? 'Clear text to record voice'
                           : _recordedAudioFile != null
-                              ? 'Re-record Voice Note'
-                              : 'Start Recording',
+                          ? 'Re-record Voice Note'
+                          : 'Start Recording',
                     ),
                   ),
           ),
