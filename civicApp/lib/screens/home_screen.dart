@@ -241,69 +241,42 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildModernAppBar(BuildContext context) {
     return SliverAppBar(
-      expandedHeight: 120,
       floating: true,
       pinned: true,
       elevation: 0,
-      backgroundColor: Colors.transparent,
+      scrolledUnderElevation: 0,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      surfaceTintColor: Colors.transparent,
       systemOverlayStyle: SystemUiOverlayStyle.dark,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
+      leading: IconButton(
+        icon: Container(
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                Theme.of(context).colorScheme.secondary.withOpacity(0.05),
-              ],
-            ),
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.menu_rounded,
+            color: Theme.of(context).colorScheme.primary,
+            size: 20,
           ),
         ),
-      ),
-      leading: Builder(
-        builder: (context) => IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.menu_rounded,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          onPressed: () => Scaffold.of(context).openDrawer(),
-        ),
+        onPressed: () => Scaffold.of(context).openDrawer(),
       ),
       actions: [
         Padding(
-          padding: const EdgeInsets.only(right: 16),
+          padding: const EdgeInsets.only(right: 8),
           child: IconButton(
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.notifications_outlined,
-                color: Theme.of(context).colorScheme.onSurface,
+                color: Theme.of(context).colorScheme.primary,
+                size: 20,
               ),
             ),
             onPressed: () {
@@ -321,6 +294,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildWelcomeHeader() {
+    final authProvider = context.watch<AuthProvider>();
+    final userName = authProvider.userProfile?.name ??
+        authProvider.firebaseUser?.displayName ??
+        'Citizen';
+    final firstName = userName.split(' ').first;
+    final greeting = _getTimeGreeting();
+
     return AnimatedBuilder(
       animation: _headerAnimationController,
       builder: (context, child) {
@@ -334,18 +314,45 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'नागरिक सेवा सेतु',
+                    '$greeting,',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    firstName,
                     style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Your voice matters. Report civic issues and make your community better.',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey.shade600,
-                      height: 1.6,
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.location_on_rounded,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Report issues in your area',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -355,6 +362,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         );
       },
     );
+  }
+
+  String _getTimeGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
   }
 
   Widget _buildCategoriesSection() {
@@ -553,32 +567,74 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildEmptyState() {
     return Container(
-      margin: const EdgeInsets.all(24),
-      padding: const EdgeInsets.all(32),
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Icon(Icons.inbox_outlined, size: 64, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.campaign_rounded,
+              size: 48,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 20),
           Text(
             'No reports yet',
             style: Theme.of(context)
                 .textTheme
                 .headlineMedium
-                ?.copyWith(color: Colors.grey.shade600),
+                ?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Be the first to report a civic issue in your area',
+            'Be the first to report a civic issue\nin your area and make a difference!',
             style: Theme.of(context)
                 .textTheme
                 .bodyMedium
-                ?.copyWith(color: Colors.grey.shade500),
+                ?.copyWith(color: Colors.grey.shade500, height: 1.5),
             textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SubmitComplaintScreen(
+                    initialCategory: 'Others',
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.add_rounded, size: 20),
+            label: const Text('Report an Issue'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
           ),
         ],
       ),
@@ -586,6 +642,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildModernDrawer(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+    final firebaseUser = authProvider.firebaseUser;
+    final userProfile = authProvider.userProfile;
+
     return Drawer(
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
@@ -594,57 +654,92 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           bottomRight: Radius.circular(20),
         ),
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              height: 180,
-              width: 550,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.secondary,
-                  ],
-                ),
-              ),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(15),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Icon(
-                          Icons.account_circle_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(height: 15),
-                      const SizedBox(height: 2),
-                      Text(
-                        'नागरिक सेवा सेतु',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 15,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+      child: Column(
+        children: [
+          // ── Drawer Header with User Profile ──────────────────
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 24,
+              left: 20,
+              right: 20,
+              bottom: 24,
+            ),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Theme.of(context).colorScheme.primary,
+                  Theme.of(context).colorScheme.secondary,
+                ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // User avatar — Google profile photo or fallback initial
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.4),
+                      width: 2,
+                    ),
+                  ),
+                  child: ClipOval(
+                    child: firebaseUser?.photoURL != null
+                        ? Image.network(
+                            firebaseUser!.photoURL!,
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _buildAvatarFallback(
+                              userProfile?.name ?? 'U',
+                            ),
+                          )
+                        : _buildAvatarFallback(userProfile?.name ?? 'U'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  userProfile?.name ?? firebaseUser?.displayName ?? 'User',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  firebaseUser?.email ?? '',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 13,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'नागरिक सेवा सेतु',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.6),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Nav Items ────────────────────────────────────────
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Column(
                 children: [
                   _buildDrawerItem(
@@ -655,7 +750,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   _buildDrawerItem(
                     context,
-                    icon: Icons.report_outlined,
+                    icon: Icons.receipt_long_rounded,
                     title: 'My Complaints',
                     onTap: () {
                       Navigator.pop(context);
@@ -669,7 +764,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   _buildDrawerItem(
                     context,
-                    icon: Icons.map_outlined,
+                    icon: Icons.map_rounded,
                     title: 'Map View',
                     onTap: () {
                       Navigator.pop(context);
@@ -681,7 +776,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   _buildDrawerItem(
                     context,
-                    icon: Icons.settings_outlined,
+                    icon: Icons.settings_rounded,
                     title: 'Settings',
                     onTap: () {
                       Navigator.pop(context);
@@ -692,25 +787,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       );
                     },
                   ),
-                  const SizedBox(height: 20),
-                  const Divider(),
-                  const SizedBox(height: 10),
+                  const Spacer(),
+                  const Divider(height: 1),
+                  const SizedBox(height: 4),
                   _buildDrawerItem(
                     context,
                     icon: Icons.logout_rounded,
-                    title: 'Logout',
+                    title: 'Sign Out',
                     onTap: () {
                       Navigator.pop(context);
                       context.read<AuthProvider>().signOut();
                     },
                     isDestructive: true,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -722,23 +817,48 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: isDestructive
-            ? Colors.red
-            : Theme.of(context).colorScheme.onSurface,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: ListTile(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        leading: Icon(
+          icon,
           color: isDestructive
-              ? Colors.red
-              : Theme.of(context).colorScheme.onSurface,
-          fontWeight: FontWeight.w500,
+              ? Colors.red.shade400
+              : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+          size: 22,
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: isDestructive
+                ? Colors.red.shade400
+                : Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.w500,
+            fontSize: 15,
+          ),
+        ),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _buildAvatarFallback(String name) {
+    return Container(
+      width: 64,
+      height: 64,
+      color: Colors.white.withOpacity(0.2),
+      alignment: Alignment.center,
+      child: Text(
+        name.isNotEmpty ? name[0].toUpperCase() : 'U',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 28,
+          fontWeight: FontWeight.w700,
         ),
       ),
-      onTap: onTap,
     );
   }
 }

@@ -17,6 +17,7 @@
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../repositories/auth_repository.dart';
 import '../models/user_profile.dart';
 import '../core/errors/app_exception.dart';
@@ -27,6 +28,7 @@ enum AuthStatus { unknown, authenticated, unauthenticated }
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _firebaseAuth;
   final AuthRepository _authRepository;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
   PushNotificationService? _pushNotificationService;
 
   AuthStatus _status = AuthStatus.unknown;
@@ -65,19 +67,12 @@ class AuthProvider extends ChangeNotifier {
     }
 
     // User is signed in — fetch/sync their MongoDB profile
-    if (user.emailVerified) {
-      debugPrint('[AuthProvider] User is verified. Initiating backend sync...');
-      _isSyncing = true;
-      notifyListeners();
-      await _syncToBackend(user);
-      _isSyncing = false;
-      notifyListeners();
-    } else {
-      debugPrint('[AuthProvider] User is NOT verified. Status remains unauthenticated.');
-      _status = AuthStatus.unauthenticated;
-      _userProfile = null;
-      notifyListeners();
-    }
+    debugPrint('[AuthProvider] User is signed in. Initiating backend sync...');
+    _isSyncing = true;
+    notifyListeners();
+    await _syncToBackend(user);
+    _isSyncing = false;
+    notifyListeners();
   }
 
   /// Syncs the Firebase user to MongoDB and loads their profile.
@@ -122,76 +117,41 @@ class AuthProvider extends ChangeNotifier {
     if (user != null) {
       await user.reload();
       final updatedUser = _firebaseAuth.currentUser;
-      debugPrint('[AuthProvider] Reload completed. Updated emailVerified: ${updatedUser?.emailVerified}');
+      debugPrint('[AuthProvider] Reload completed.');
       await _onAuthStateChanged(updatedUser);
     }
   }
 
   // ── Auth Actions ──────────────────────────────────────────────
 
-  /// Signs in with email and password.
+  /// Signs in with Google.
   /// Returns an error message string on failure, null on success.
-  Future<String?> signInWithEmail({
-    required String email,
-    required String password,
-  }) async {
+  Future<String?> signInWithGoogle() async {
     try {
-      await _firebaseAuth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null; // user canceled the login flow
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
       );
+
+      await _firebaseAuth.signInWithCredential(credential);
       // _onAuthStateChanged will fire automatically and sync to backend.
       return null;
     } on FirebaseAuthException catch (e) {
       return _mapFirebaseAuthError(e.code);
     } catch (e) {
-      return 'An unexpected error occurred.';
+      return 'An unexpected error occurred during Google Sign In.';
     }
   }
 
-  /// Creates a new Firebase account and sends a verification email.
-  /// Returns an error message string on failure, null on success.
-  Future<String?> signUpWithEmail({
-    required String email,
-    required String password,
-    String? name,
-  }) async {
-    try {
-      final cred = await _firebaseAuth.createUserWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
-
-      // Set display name if provided
-      if (name != null && name.isNotEmpty) {
-        await cred.user?.updateDisplayName(name);
-      }
-
-      // Verify screen will automatically send the verification email upon loading.
-      return null;
-    } on FirebaseAuthException catch (e) {
-      return _mapFirebaseAuthError(e.code);
-    } catch (e) {
-      return 'An unexpected error occurred.';
-    }
-  }
-
-  /// Signs out from Firebase Auth.
+  /// Signs out from Firebase Auth and Google.
   Future<void> signOut() async {
+    await _googleSignIn.signOut();
     await _firebaseAuth.signOut();
     // _onAuthStateChanged fires automatically.
-  }
-
-  /// Sends a password reset email.
-  Future<String?> sendPasswordResetEmail(String email) async {
-    try {
-      await _firebaseAuth.sendPasswordResetEmail(email: email.trim());
-      return null;
-    } on FirebaseAuthException catch (e) {
-      return _mapFirebaseAuthError(e.code);
-    } catch (e) {
-      return 'An unexpected error occurred.';
-    }
   }
 
   /// Manually refreshes the MongoDB user profile.
@@ -208,16 +168,15 @@ class AuthProvider extends ChangeNotifier {
 
   String _mapFirebaseAuthError(String code) {
     return switch (code) {
-      'user-not-found' => 'No account found with this email.',
-      'wrong-password' => 'Incorrect password.',
-      'invalid-credential' => 'Invalid email or password.',
-      'email-already-in-use' => 'An account with this email already exists.',
-      'weak-password' => 'Password must be at least 6 characters.',
-      'invalid-email' => 'Please enter a valid email address.',
-      'user-disabled' => 'This account has been disabled.',
+      'account-exists-with-different-credential' =>
+        'An account already exists with a different sign-in method.',
+      'invalid-credential' => 'Sign-in credentials are invalid. Please try again.',
+      'user-disabled' => 'This account has been disabled by an administrator.',
       'too-many-requests' => 'Too many attempts. Please try again later.',
       'network-request-failed' => 'Network error. Check your connection.',
-      _ => 'Authentication failed. Please try again.',
+      'operation-not-allowed' =>
+        'Google Sign-In is not enabled. Please contact the admin.',
+      _ => 'Sign-in failed. Please try again.',
     };
   }
 }

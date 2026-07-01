@@ -1,3 +1,10 @@
+// lib/widgets/complaint_card.dart
+// ─────────────────────────────────────────────────────────────
+// Complaint Card — Displays a single complaint with category
+// icon, status badge, description, image, voice transcript, 
+// upvote button, and relative timestamp.
+// ─────────────────────────────────────────────────────────────
+
 import 'package:flutter/material.dart';
 import '../models/complaint.dart';
 import 'upvote_button.dart';
@@ -69,10 +76,22 @@ class _ComplaintCardState extends State<ComplaintCard>
     }
   }
 
+  String _formatRelativeTime(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    if (diff.inDays < 30) return '${(diff.inDays / 7).floor()}w ago';
+    return '${dt.day}/${dt.month}/${dt.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor();
     final categoryIcon = _getCategoryIcon();
+    final theme = Theme.of(context);
 
     return MouseRegion(
       onEnter: (_) {
@@ -89,42 +108,43 @@ class _ComplaintCardState extends State<ComplaintCard>
           return Transform.scale(
             scale: _scaleAnimation.value,
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: _isHovered 
-                      ? Theme.of(context).colorScheme.primary.withOpacity(0.3)
-                      : Colors.grey.shade200,
+                      ? theme.colorScheme.primary.withOpacity(0.3)
+                      : Colors.grey.shade100,
                   width: 1,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: _isHovered 
-                        ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-                        : Colors.black.withOpacity(0.05),
-                    blurRadius: _isHovered ? 20 : 10,
+                        ? theme.colorScheme.primary.withOpacity(0.1)
+                        : Colors.black.withOpacity(0.04),
+                    blurRadius: _isHovered ? 20 : 12,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Header: Category + Status ────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+                    child: Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                            color: theme.colorScheme.primary.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
                             categoryIcon,
-                            color: Theme.of(context).colorScheme.primary,
+                            color: theme.colorScheme.primary,
                             size: 20,
                           ),
                         ),
@@ -135,108 +155,213 @@ class _ComplaintCardState extends State<ComplaintCard>
                             children: [
                               Text(
                                 widget.complaint.category,
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 18,
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: statusColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  widget.complaint.status,
-                                  style: TextStyle(
-                                    color: statusColor,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
+                              Row(
+                                children: [
+                                  // Status badge
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: statusColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      widget.complaint.status,
+                                      style: TextStyle(
+                                        color: statusColor,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
                             ],
                           ),
                         ),
+                        // Timestamp
+                        Text(
+                          _formatRelativeTime(widget.complaint.createdAt),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade400,
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      widget.complaint.description,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  ),
+
+                  // ── Description ────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+                    child: Text(
+                      widget.complaint.description.isNotEmpty
+                          ? widget.complaint.description
+                          : '(Voice note — see transcript below)',
+                      style: theme.textTheme.bodyMedium?.copyWith(
                         height: 1.5,
-                        color: Colors.grey.shade700,
+                        color: widget.complaint.description.isNotEmpty
+                            ? Colors.grey.shade700
+                            : Colors.grey.shade400,
+                        fontStyle: widget.complaint.description.isNotEmpty
+                            ? FontStyle.normal
+                            : FontStyle.italic,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+
+                  // ── Voice Transcript (if available) ────────────
+                  if (widget.complaint.voiceNoteTranscript != null &&
+                      widget.complaint.voiceNoteTranscript!.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withOpacity(0.04),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: theme.colorScheme.primary.withOpacity(0.1),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.mic_rounded,
+                                size: 14,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'AI Voice Transcript',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    widget.complaint.voiceNoteTranscript!,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: Colors.grey.shade700,
+                                      fontStyle: FontStyle.italic,
+                                      height: 1.4,
+                                    ),
+                                    maxLines: 4,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    if (widget.complaint.imageUrl != null) ...[
-                      const SizedBox(height: 16),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
+                  ],
+
+                  // ── Photo ──────────────────────────────────────
+                  if (widget.complaint.imageUrl != null) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
                         child: Image.network(
                           widget.complaint.imageUrl!,
-                          height: 180,
+                          height: 170,
                           width: double.infinity,
                           fit: BoxFit.cover,
                           loadingBuilder: (context, child, loadingProgress) {
                             if (loadingProgress == null) return child;
                             return Container(
-                              height: 180,
+                              height: 170,
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(12),
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(14),
                               ),
-                              child: const Center(
-                                child: CircularProgressIndicator(),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: theme.colorScheme.primary,
+                                ),
                               ),
                             );
                           },
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
-                              height: 180,
+                              height: 100,
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(12),
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(14),
                               ),
-                              child: const Center(
+                              child: Center(
                                 child: Icon(
                                   Icons.image_not_supported_outlined,
-                                  color: Colors.grey,
-                                  size: 48,
+                                  color: Colors.grey.shade400,
+                                  size: 32,
                                 ),
                               ),
                             );
                           },
                         ),
                       ),
-                    ],
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    ),
+                  ],
+
+                  // ── Footer: Upvotes + Upvote Button ───────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+                    child: Row(
                       children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.thumb_up_outlined,
-                              size: 16,
-                              color: Colors.grey.shade600,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              "${widget.complaint.upvotes} upvotes",
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
+                        Icon(
+                          Icons.thumb_up_rounded,
+                          size: 14,
+                          color: Colors.grey.shade400,
                         ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${widget.complaint.upvotes}',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          widget.complaint.upvotes == 1 ? 'upvote' : 'upvotes',
+                          style: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const Spacer(),
                         UpvoteButton(complaintId: widget.complaint.id),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           );

@@ -20,6 +20,7 @@ class Complaint {
   final String description;
   final String? imageUrl;
   final String? voiceNoteUrl;
+  final String? voiceNoteTranscript;
   final String status;
   final String urgency; // 'Low' | 'Medium' | 'High' — set by AI backend
   final int upvotes;
@@ -35,6 +36,7 @@ class Complaint {
     required this.description,
     this.imageUrl,
     this.voiceNoteUrl,
+    this.voiceNoteTranscript,
     required this.status,
     this.urgency = 'Low',
     required this.upvotes,
@@ -75,6 +77,7 @@ class Complaint {
       description: json['description']?.toString() ?? '',
       imageUrl: json['imageUrl']?.toString(),
       voiceNoteUrl: json['voiceNoteUrl']?.toString(),
+      voiceNoteTranscript: json['voiceNoteTranscript']?.toString(),
       status: json['status']?.toString() ?? 'Pending',
       urgency: json['urgency']?.toString() ?? 'Low',
       upvotes: (json['upvotes'] as num?)?.toInt() ?? 0,
@@ -113,6 +116,7 @@ class Complaint {
       description: description,
       imageUrl: imageUrl,
       voiceNoteUrl: voiceNoteUrl,
+      voiceNoteTranscript: voiceNoteTranscript,
       status: status ?? this.status,
       urgency: urgency ?? this.urgency,
       upvotes: upvotes ?? this.upvotes,

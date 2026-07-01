@@ -16,6 +16,7 @@ dependencies:
   # ── Firebase (Auth ONLY — Firestore removed) ──────────────────
   firebase_core: ^4.1.0
   firebase_auth: ^6.0.2
+  google_sign_in: ^6.2.1
 
   # ── HTTP / Networking ─────────────────────────────────────────
   # dio: feature-rich HTTP client with interceptors for auth tokens

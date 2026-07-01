@@ -141,18 +141,36 @@ class ComplaintProvider extends ChangeNotifier {
   /// confirm with the backend. If the backend call fails, we roll back.
   Future<void> toggleUpvote(String complaintId) async {
     // 1. Find and immediately update the complaint in local state (optimistic)
-    final idx = _allComplaints.indexWhere((c) => c.id == complaintId);
-    if (idx == -1) return;
+    final idxAll = _allComplaints.indexWhere((c) => c.id == complaintId);
+    final idxMine = _myComplaints.indexWhere((c) => c.id == complaintId);
+    
+    if (idxAll == -1 && idxMine == -1) return;
 
-    final original = _allComplaints[idx];
-    final optimistic = original.copyWith(
-      upvotes: original.hasUpvoted
-          ? original.upvotes - 1
-          : original.upvotes + 1,
-      hasUpvoted: !original.hasUpvoted,
-    );
-
-    _allComplaints = List.from(_allComplaints)..[idx] = optimistic;
+    Complaint? originalAll;
+    Complaint? originalMine;
+    
+    if (idxAll != -1) {
+      originalAll = _allComplaints[idxAll];
+      final optimisticAll = originalAll.copyWith(
+        upvotes: originalAll.hasUpvoted
+            ? originalAll.upvotes - 1
+            : originalAll.upvotes + 1,
+        hasUpvoted: !originalAll.hasUpvoted,
+      );
+      _allComplaints = List.from(_allComplaints)..[idxAll] = optimisticAll;
+    }
+    
+    if (idxMine != -1) {
+      originalMine = _myComplaints[idxMine];
+      final optimisticMine = originalMine.copyWith(
+        upvotes: originalMine.hasUpvoted
+            ? originalMine.upvotes - 1
+            : originalMine.upvotes + 1,
+        hasUpvoted: !originalMine.hasUpvoted,
+      );
+      _myComplaints = List.from(_myComplaints)..[idxMine] = optimisticMine;
+    }
+    
     notifyListeners();
 
     // 2. Confirm with the backend
@@ -160,15 +178,30 @@ class ComplaintProvider extends ChangeNotifier {
       final result = await _repository.toggleUpvote(complaintId);
 
       // Update with the real count from the backend
-      final confirmed = original.copyWith(
-        upvotes: result.upvotes,
-        hasUpvoted: result.hasUpvoted,
-      );
-      _allComplaints = List.from(_allComplaints)..[idx] = confirmed;
+      if (idxAll != -1 && originalAll != null) {
+        final confirmedAll = originalAll.copyWith(
+          upvotes: result.upvotes,
+          hasUpvoted: result.hasUpvoted,
+        );
+        _allComplaints = List.from(_allComplaints)..[idxAll] = confirmedAll;
+      }
+      
+      if (idxMine != -1 && originalMine != null) {
+        final confirmedMine = originalMine.copyWith(
+          upvotes: result.upvotes,
+          hasUpvoted: result.hasUpvoted,
+        );
+        _myComplaints = List.from(_myComplaints)..[idxMine] = confirmedMine;
+      }
       notifyListeners();
     } on AppException catch (e) {
       // Roll back on failure
-      _allComplaints = List.from(_allComplaints)..[idx] = original;
+      if (idxAll != -1 && originalAll != null) {
+        _allComplaints = List.from(_allComplaints)..[idxAll] = originalAll;
+      }
+      if (idxMine != -1 && originalMine != null) {
+        _myComplaints = List.from(_myComplaints)..[idxMine] = originalMine;
+      }
       _errorMessage = e.message;
       notifyListeners();
     }
