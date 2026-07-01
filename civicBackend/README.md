@@ -8,10 +8,19 @@ Common backend for **civicApp (Flutter)** and **civicWeb (React)**.
 civicApp (Flutter)  ──┐
                        ├──► civicBackend (Express) ──► MongoDB Atlas
 civicWeb (React)    ──┘        │
-                               └──► Firebase Admin (Auth & FCM Push)
-                               └──► Cloudinary (Image & Voice media)
+                               └──► Firebase Admin (Auth Token Verification & FCM Push)
+                               └──► Cloudinary (Image & Voice media storage)
                                └──► Groq API (Urgency AI & Whisper transcription)
 ```
+
+---
+
+## Key Phase 2 Implementations
+
+- **Google Sign-In Session Sync**: Endpoints adapted to verify Firebase Google ID tokens and sync profiles dynamically to MongoDB Atlas.
+- **Groq Whisper Audio Transcription**: Re-routed the transcription pipeline to utilize Groq Whisper API for backend-side STT parsing. Received voice complaints (Cloudinary `.m4a` / `.mp3` URLs) are sent to Groq Whisper for transcription.
+- **AI Urgency Classification**: The text transcription is automatically combined with the text description and evaluated through the LLaMA-3.1 model to determine severity categories (Admin/Backend only).
+- **Push Notification Service**: Configured FCM messaging handlers to broadcast instant status update changes (Pending -> In Progress -> Resolved) back to the reporting citizen.
 
 ---
 
@@ -33,16 +42,16 @@ Now open `.env` and fill in your values. See below for where to get each one.
 
 #### MongoDB Atlas
 1. Go to [mongodb.com/atlas](https://www.mongodb.com/atlas/database)
-2. Create a free M0 cluster (it's free forever)
-3. Create a **Database User** (not your Atlas account - a separate DB user)
-4. In Network Access, add `0.0.0.0/0` to allow connections from anywhere (for dev)
+2. Create a free M0 cluster
+3. Create a **Database User**
+4. In Network Access, add `0.0.0.0/0` to allow connections from anywhere
 5. Click **Connect → Drivers** and copy the connection string
 6. Replace `<password>` in the string with your DB user's password
 7. Paste into `MONGODB_URI` in `.env`
 
 #### Firebase Admin SDK
 1. Open [Firebase Console](https://console.firebase.google.com) → your project
-2. **Project Settings** (gear icon) → **Service Accounts**
+2. **Project Settings** → **Service Accounts**
 3. Click **"Generate new private key"** → downloads a JSON file
 4. Open the JSON file and copy:
    - `project_id` → `FIREBASE_PROJECT_ID`
@@ -52,10 +61,12 @@ Now open `.env` and fill in your values. See below for where to get each one.
 > ⚠️ **Important**: In `.env`, the private key must have literal `\n` characters. Copy it exactly as it appears in the JSON file.
 
 #### Cloudinary
-Your cloud name is already known: `dmecx8pcz`
 1. Go to [Cloudinary Dashboard](https://cloudinary.com/console)
-2. Go to **Settings → API Keys**
-3. Copy `API Key` and `API Secret`
+2. Copy `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` and paste them into `.env`
+
+#### Groq API Key
+1. Go to the Groq Console and obtain an API Key.
+2. Paste it into `GROQ_API_KEY` in `.env`.
 
 ### Step 4: Run the development server
 ```bash
@@ -90,11 +101,11 @@ Authorization: Bearer <firebase-id-token>
 ### Users
 | Method | Route | Auth | Description |
 |--------|-------|------|-------------|
-| `POST` | `/api/users/sync` | ✅ Any | Create/update user after Firebase login |
+| `POST` | `/api/users/sync` | ✅ Any | Create/update user after Google Sign-In |
 | `GET` | `/api/users/me` | ✅ Any | Get current user profile |
 
 #### POST /api/users/sync
-Call this immediately after every Firebase sign-in. Creates user in MongoDB if new, or updates if existing.
+Call this immediately after every Firebase Google sign-in. Creates user in MongoDB if new, or updates profile info.
 
 **Request Body:**
 ```json
@@ -102,19 +113,6 @@ Call this immediately after every Firebase sign-in. Creates user in MongoDB if n
   "name": "Bhargav Sharma",
   "email": "bhargav@example.com",
   "phone": "+91-9876543210"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": "mongo_object_id",
-    "firebaseUid": "firebase_uid",
-    "name": "Bhargav Sharma",
-    "role": "citizen"
-  }
 }
 ```
 
@@ -143,19 +141,7 @@ Call this immediately after every Firebase sign-in. Creates user in MongoDB if n
   "voiceNoteUrl": "https://res.cloudinary.com/dmecx8pcz/video/upload/..."
 }
 ```
-> Note: `imageUrl` and `voiceNoteUrl` are optional (but you must provide either text description or voice note). Upload to Cloudinary first using `/api/upload/signature?type=image|audio`, then pass the URL here.
-
-#### GET /api/complaints (Query Params)
-```
-?category=Road&status=Pending&urgency=High&page=1&limit=20
-```
-
-#### PATCH /api/complaints/:id/status
-**Request Body:**
-```json
-{ "status": "In Progress" }
-```
-Valid values: `Pending`, `In Progress`, `Resolved`, `Rejected`
+> Note: `imageUrl` is compulsory. `description` OR `voiceNoteUrl` must be provided (enforced via backend validation).
 
 ---
 
@@ -171,7 +157,8 @@ Valid values: `Pending`, `In Progress`, `Resolved`, `Rejected`
 ### Upload
 | Method | Route | Auth | Description |
 |--------|-------|------|-------------|
-| `GET` | `/api/upload/signature` | ✅ | Get Cloudinary signed upload params |
+| `GET` | `/api/upload/signature` | ✅ | Get Cloudinary signed upload parameters |
+| `GET` | `/api/upload/voice-signature` | ✅ | Cloudinary parameters for raw audio files |
 
 ---
 
@@ -190,7 +177,6 @@ civicBackend/
 │   │   └── Notification.js # Mongoose Notification schema
 │   ├── middleware/
 │   │   ├── auth.js         # Firebase token verification + role check
-│   │   ├── validate.js     # Joi request body validation
 │   │   └── errorHandler.js # Global error handler
 │   ├── controllers/
 │   │   ├── userController.js
@@ -207,22 +193,4 @@ civicBackend/
 │   │   ├── urgencyService.js       # Groq LLaMA urgency & Whisper audio transcription
 │   ├── app.js             # Express app (middleware + routes)
 │   └── server.js          # Entry point (DB connect + listen)
-├── tests/
-│   └── health.test.js
-├── .env.example
-├── .gitignore
-└── package.json
 ```
-
----
-
-## Deployment (Render)
-
-1. Push `civicBackend` to a GitHub repo
-2. Go to [render.com](https://render.com) → New Web Service
-3. Connect your GitHub repo
-4. Settings:
-   - **Build Command:** `npm install`
-   - **Start Command:** `npm start`
-   - **Environment:** Add all variables from `.env`
-5. Click Deploy

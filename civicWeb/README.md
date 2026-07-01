@@ -1,23 +1,24 @@
 # civicWeb - Municipal Dashboard
 
-The civicWeb portal is a React application built with Vite and TailwindCSS for municipal authorities to manage civic complaints. 
+The civicWeb portal is a React application built with Vite and Vanilla CSS for municipal authorities to manage civic complaints.
 
 ## Features
 
 - **Role-Based Access Control (RBAC):** Supports `admin`, `main_officer`, and `department_staff`.
-- **Live Incident Map:** Integrated with Google Maps API to visualize complaints geographically.
-- **SLA & Analytics:** Dashboards for tracking pending complaints, urgency levels, and department-wise performance.
-- **AI Urgency Flags:** Highlights complaints marked as "High" urgency by the backend AI.
-- **Voice Note Transcription:** Displays AI-transcribed text for voice complaints.
-- **Cloudinary Integration:** Supports viewing image proofs attached to complaints.
+- **Live Incident Map:** Integrated with Google Maps API to visualize complaints geographically. Markers are clustered and color-coded by current grievance status.
+- **SLA & Analytics:** Dashboards for tracking pending complaints, resolution time targets, and department-wise performance metrics.
+- **AI Urgency Flags:** Highlights complaints marked as "High" urgency by the backend AI (visible only to municipal staff).
+- **Voice Note Transcription:** Displays the backend-transcribed text next to voice-based complaints.
+- **Cloudinary Integration:** Supports viewing image evidence attached to complaints.
+- **Modern Responsive Design:** Re-coded styles for improved visual presentation and mobile adaptability.
 
 ## Tech Stack
 
 - **Framework:** React + Vite
-- **Styling:** TailwindCSS v4 + shadcn/ui-inspired components
+- **Styling:** Vanilla CSS (curated HSL palettes, cards, modern grids)
 - **Maps:** `@react-google-maps/api`
 - **Charts:** Recharts
-- **State/API:** React Context + Axios interceptors
+- **State/API:** React Context + Axios interceptors for authentication syncing
 
 ## Architecture & Data Flow
 
@@ -39,7 +40,7 @@ Copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env
 ```
-Ensure you have the following keys:
+Ensure you have the following keys configured:
 - `VITE_FIREBASE_*` (for Authentication)
 - `VITE_API_BASE_URL` (Points to civicBackend, usually `http://localhost:5000/api`)
 - `VITE_GOOGLE_MAPS_API_KEY` (Required for the live incident map)
