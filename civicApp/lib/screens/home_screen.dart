@@ -63,14 +63,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     try {
       final picker = ImagePicker();
       final response = await picker.retrieveLostData();
-      
+
       final prefs = await SharedPreferences.getInstance();
       final pending = prefs.getBool('pending_complaint') ?? false;
 
       if (pending) {
         final savedCategory = prefs.getString('pending_category') ?? 'Others';
         final savedDesc = prefs.getString('pending_desc');
-        
+
         // Clear immediately so it doesn't trigger again
         await prefs.remove('pending_complaint');
         await prefs.remove('pending_category');
@@ -117,7 +117,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   List<Complaint> _sortComplaintsByDistance(List<Complaint> complaints) {
     final sorted = List<Complaint>.from(complaints);
-    sorted.sort((a, b) => _calculateDistance(a).compareTo(_calculateDistance(b)));
+    sorted.sort(
+      (a, b) => _calculateDistance(a).compareTo(_calculateDistance(b)),
+    );
     return sorted;
   }
 
@@ -135,53 +137,47 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       vsync: this,
     );
 
-    _headerSlideAnimation = Tween<double>(
-      begin: -50.0,
-      end: 0.0,
-    ).animate(CurvedAnimation(
-      parent: _headerAnimationController,
-      curve: Curves.easeOutCubic,
-    ));
+    _headerSlideAnimation = Tween<double>(begin: -50.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _headerAnimationController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
 
-    _categoriesSlideAnimation = Tween<double>(
-      begin: 30.0,
-      end: 0.0,
-    ).animate(CurvedAnimation(
-      parent: _categoriesAnimationController,
-      curve: Curves.easeOutCubic,
-    ));
+    _categoriesSlideAnimation = Tween<double>(begin: 30.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _categoriesAnimationController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
 
-    _complaintsSlideAnimation = Tween<double>(
-      begin: 50.0,
-      end: 0.0,
-    ).animate(CurvedAnimation(
-      parent: _complaintsAnimationController,
-      curve: Curves.easeOutCubic,
-    ));
+    _complaintsSlideAnimation = Tween<double>(begin: 50.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _complaintsAnimationController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
 
-    _headerFadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _headerAnimationController,
-      curve: Curves.easeOut,
-    ));
+    _headerFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _headerAnimationController,
+        curve: Curves.easeOut,
+      ),
+    );
 
-    _categoriesFadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _categoriesAnimationController,
-      curve: Curves.easeOut,
-    ));
+    _categoriesFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _categoriesAnimationController,
+        curve: Curves.easeOut,
+      ),
+    );
 
-    _complaintsFadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _complaintsAnimationController,
-      curve: Curves.easeOut,
-    ));
+    _complaintsFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _complaintsAnimationController,
+        curve: Curves.easeOut,
+      ),
+    );
   }
 
   void _startAnimations() async {
@@ -248,20 +244,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       backgroundColor: Theme.of(context).colorScheme.surface,
       surfaceTintColor: Colors.transparent,
       systemOverlayStyle: SystemUiOverlayStyle.dark,
-      leading: IconButton(
-        icon: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.menu_rounded,
-            color: Theme.of(context).colorScheme.primary,
-            size: 20,
-          ),
-        ),
-        onPressed: () => Scaffold.of(context).openDrawer(),
+      leading: Builder(
+        builder: (BuildContext innerContext) {
+          return IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.menu_rounded,
+                color: Theme.of(context).colorScheme.primary,
+                size: 20,
+              ),
+            ),
+            onPressed: () => Scaffold.of(innerContext).openDrawer(),
+          );
+        },
       ),
       actions: [
         Padding(
@@ -282,9 +282,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const NotificationsScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
               );
             },
           ),
@@ -295,7 +293,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildWelcomeHeader() {
     final authProvider = context.watch<AuthProvider>();
-    final userName = authProvider.userProfile?.name ??
+    final userName =
+        authProvider.userProfile?.name ??
         authProvider.firebaseUser?.displayName ??
         'Citizen';
     final firstName = userName.split(' ').first;
@@ -330,9 +329,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -399,11 +403,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     physics: const BouncingScrollPhysics(),
                     children: [
-                      _buildAnimatedCategoryCard('Sanitation', Icons.cleaning_services_rounded, 0),
-                      _buildAnimatedCategoryCard('Water', Icons.water_drop_rounded, 1),
-                      _buildAnimatedCategoryCard('Electrical', Icons.electrical_services_rounded, 2),
-                      _buildAnimatedCategoryCard('Road', Icons.route_rounded, 3),
-                      _buildAnimatedCategoryCard('Others', Icons.more_horiz_rounded, 4),
+                      _buildAnimatedCategoryCard(
+                        'Sanitation',
+                        Icons.cleaning_services_rounded,
+                        0,
+                      ),
+                      _buildAnimatedCategoryCard(
+                        'Water',
+                        Icons.water_drop_rounded,
+                        1,
+                      ),
+                      _buildAnimatedCategoryCard(
+                        'Electrical',
+                        Icons.electrical_services_rounded,
+                        2,
+                      ),
+                      _buildAnimatedCategoryCard(
+                        'Road',
+                        Icons.route_rounded,
+                        3,
+                      ),
+                      _buildAnimatedCategoryCard(
+                        'Others',
+                        Icons.more_horiz_rounded,
+                        4,
+                      ),
                     ],
                   ),
                 ),
@@ -434,17 +458,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       SubmitComplaintScreen(initialCategory: category),
                   transitionsBuilder:
                       (context, animation, secondaryAnimation, child) {
-                    return SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(1.0, 0.0),
-                        end: Offset.zero,
-                      ).animate(CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOutCubic,
-                      )),
-                      child: child,
-                    );
-                  },
+                        return SlideTransition(
+                          position:
+                              Tween<Offset>(
+                                begin: const Offset(1.0, 0.0),
+                                end: Offset.zero,
+                              ).animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeOutCubic,
+                                ),
+                              ),
+                          child: child,
+                        );
+                      },
                   transitionDuration: const Duration(milliseconds: 300),
                 ),
               );
@@ -473,9 +500,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     children: [
                       Text(
                         'Recent Reports',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                       TextButton(
                         onPressed: () {
@@ -518,8 +544,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               ),
                               const SizedBox(height: 12),
                               ElevatedButton(
-                                onPressed: () =>
-                                    provider.loadAllComplaints(),
+                                onPressed: () => provider.loadAllComplaints(),
                                 child: const Text('Retry'),
                               ),
                             ],
@@ -534,14 +559,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     }
 
                     // Just sort all complaints by distance (nearest first)
-                    final sortedComplaints = _sortComplaintsByDistance(complaints);
+                    final sortedComplaints = _sortComplaintsByDistance(
+                      complaints,
+                    );
 
                     return Column(
                       children: sortedComplaints.asMap().entries.map((e) {
                         int index = e.key;
                         Complaint complaint = e.value;
                         return TweenAnimationBuilder<double>(
-                          duration: Duration(milliseconds: 300 + (index * 50)), // slightly faster stagger
+                          duration: Duration(
+                            milliseconds: 300 + (index * 50),
+                          ), // slightly faster stagger
                           tween: Tween(begin: 0.0, end: 1.0),
                           builder: (context, value, child) {
                             return Transform.translate(
@@ -598,21 +627,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           const SizedBox(height: 20),
           Text(
             'No reports yet',
-            style: Theme.of(context)
-                .textTheme
-                .headlineMedium
-                ?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Be the first to report a civic issue\nin your area and make a difference!',
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: Colors.grey.shade500, height: 1.5),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.grey.shade500,
+              height: 1.5,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -621,9 +647,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const SubmitComplaintScreen(
-                    initialCategory: 'Others',
-                  ),
+                  builder: (_) =>
+                      const SubmitComplaintScreen(initialCategory: 'Others'),
                 ),
               );
             },
@@ -696,9 +721,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             width: 64,
                             height: 64,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _buildAvatarFallback(
-                              userProfile?.name ?? 'U',
-                            ),
+                            errorBuilder: (_, __, ___) =>
+                                _buildAvatarFallback(userProfile?.name ?? 'U'),
                           )
                         : _buildAvatarFallback(userProfile?.name ?? 'U'),
                   ),
@@ -783,7 +807,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const SettingsScreen()),
+                          builder: (_) => const SettingsScreen(),
+                        ),
                       );
                     },
                   ),
@@ -820,9 +845,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: ListTile(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         leading: Icon(
           icon,
           color: isDestructive
