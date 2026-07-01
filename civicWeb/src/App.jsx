@@ -7,6 +7,7 @@ import Departments from './pages/Departments.jsx' // Will act as Login
 import DepartmentDashboard from './pages/DepartmentDashboard.jsx'
 import ComplaintDetail from './pages/ComplaintDetail.jsx'
 import Analytics from './pages/Analytics.jsx'
+import History from './pages/History.jsx'
 import ChangePassword from './pages/ChangePassword.jsx'
 // Placeholder imports, to be implemented
 // import AdminComplaints from './pages/AdminComplaints.jsx'
@@ -93,14 +94,16 @@ export default function App() {
               {/* Admin & Main Officer Routes */}
               <Route element={<ProtectedLayout allowedRoles={["admin", "main_officer"]} />}>
                 <Route path="/admin/dashboard" element={<Dashboard />} />
-                <Route path="/admin/complaints" element={<Analytics />} /> {/* Placeholder */}
+                <Route path="/admin/complaints" element={<Analytics />} />
                 <Route path="/analytics" element={<Analytics />} />
+                <Route path="/history" element={<History />} />
               </Route>
 
               {/* Department Staff Routes */}
               <Route element={<ProtectedLayout allowedRoles={["admin", "main_officer", "department_staff"]} />}>
                 <Route path="/department/:deptId/dashboard" element={<DepartmentDashboard />} />
-                <Route path="/department/:deptId/complaints" element={<Analytics />} /> {/* Placeholder */}
+                <Route path="/department/:deptId/complaints" element={<Analytics />} />
+                <Route path="/history" element={<History />} />
               </Route>
 
               {/* Shared Routes */}

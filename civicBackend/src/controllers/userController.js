@@ -39,13 +39,28 @@ const syncUser = async (req, res, next) => {
     const email = req.user.email || ''; // Always from the verified Firebase ID token
     const firebaseUid = req.user.uid; // From verifyFirebaseToken middleware
 
-    // findOneAndUpdate with upsert:true creates the doc if it doesn't exist
-    // new:true returns the updated document (not the old one)
-    const user = await User.findOneAndUpdate(
-      { firebaseUid },                   // Find by Firebase UID
-      { firebaseUid, name, email, phone }, // Set these fields
-      { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
-    );
+    // First try to find by firebaseUid
+    let user = await User.findOne({ firebaseUid });
+    
+    if (!user) {
+      // If not found by UID, check if email exists (user recreated Firebase account)
+      user = await User.findOne({ email });
+      if (user) {
+        // Re-link the new Firebase UID to the existing MongoDB user
+        user.firebaseUid = firebaseUid;
+        user.name = name;
+        if (phone) user.phone = phone;
+        await user.save();
+      } else {
+        // Completely new user
+        user = await User.create({ firebaseUid, name, email, phone });
+      }
+    } else {
+      // User exists with this UID, just update their details
+      user.name = name;
+      if (phone) user.phone = phone;
+      await user.save();
+    }
 
     res.status(200).json({
       success: true,
@@ -124,7 +139,15 @@ const registerFcmToken = async (req, res, next) => {
     if (!token) {
       return res.status(400).json({ success: false, message: 'FCM token is required.' });
     }
+    const User = require('../models/User');
 
+    // Remove this token from ALL users to ensure it's only tied to the currently logged in user
+    await User.updateMany(
+      { fcmTokens: token },
+      { $pull: { fcmTokens: token } }
+    );
+
+    // Add it strictly to the current user
     if (!req.dbUser.fcmTokens.includes(token)) {
       req.dbUser.fcmTokens.push(token);
       await req.dbUser.save();

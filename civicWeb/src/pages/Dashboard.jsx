@@ -1,40 +1,139 @@
 /**
  * Dashboard.jsx — Main Officer / Admin overview dashboard.
  *
- * Fixes applied:
- *   1. Stats: Now reads statsRes.totals (not statsRes directly) — fixes blank KPI cards.
- *   2. Map: Uses new /api/complaints/map endpoint with viewport bounding box queries
- *           instead of loading the first 20 complaints from /complaints.
- *   3. Map: Default center is Bangalore; auto-pans to centroid of loaded complaints.
- *   4. Map: On bounds_changed, re-fetches only the complaints in the visible viewport.
- *   5. Dates: Use shortDateTime() from formatDate utilities for precise timestamps.
- *   6. Urgency/status: Centralised via urgencyVariant/statusVariant from civic constants.
+ * UI overhaul:
+ *  - KPI cards with icons, colour accents, and resolution rate
+ *  - Action Required redesigned as a vertical card list (no table, no horizontal scroll)
+ *    Each complaint shows as a compact row with dept icon, urgency pill, status pill, time, and View button
+ *  - Map and Action Required are now equal-height side-by-side, both scroll internally
+ *  - High urgency alert banner improved with dept breakdown chips
+ *  - Overall spacing/typography tightened to match Analytics / History aesthetic
  */
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api'
 import api from '../services/api'
-import {
-  Card, CardHeader, CardTitle, CardContent,
-  Table, THead, TBody, TR, TH, TD, Badge, Button,
-} from '../components/ui.jsx'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
-import { RefreshCw } from 'lucide-react'
-import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM, urgencyVariant } from '../constants/civic.js'
+import {
+  RefreshCw, AlertTriangle, CheckCircle, Clock,
+  BarChart2, Zap, MapPin, ArrowRight, TrendingUp,
+} from 'lucide-react'
+import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM } from '../constants/civic.js'
 import { shortDateTime, relativeTime } from '../utils/formatDate.js'
 import { toast } from '../utils/toast.js'
 
-const MAP_CONTAINER_STYLE = { width: '100%', height: '380px' }
+// ── Design tokens ─────────────────────────────────────────────
+const DEPT_ICON = {
+  Water:      '💧',
+  Road:       '🛣️',
+  Electrical: '⚡',
+  Sanitation: '🗑️',
+  Others:     '📋',
+}
+const URGENCY_STYLE = {
+  High:   'bg-red-100 text-red-700 border-red-200',
+  Medium: 'bg-amber-100 text-amber-700 border-amber-200',
+  Low:    'bg-emerald-100 text-emerald-700 border-emerald-200',
+}
+const STATUS_STYLE = {
+  Pending:      'bg-red-50 text-red-600',
+  'In Progress':'bg-amber-50 text-amber-700',
+  Resolved:     'bg-emerald-50 text-emerald-700',
+  Rejected:     'bg-gray-100 text-gray-500',
+}
+const URGENCY_DOT = { High: 'bg-red-500', Medium: 'bg-amber-400', Low: 'bg-emerald-400' }
 
-// Google Maps icon URLs by status — colour-coded for quick visual triage
+const MAP_CONTAINER_STYLE = { width: '100%', height: '100%' }
 const MARKER_ICONS = {
   Pending:     'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
   'In Progress': 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
   Resolved:    'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
 }
 
+// ── Skeleton shimmer ─────────────────────────────────────────
+const Shimmer = ({ h = 'h-5', w = 'w-full', cls = '' }) => (
+  <div className={`${h} ${w} ${cls} rounded-lg bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 animate-pulse`} />
+)
+
+// ── KPI Card ──────────────────────────────────────────────────
+function KPICard({ label, value, icon: Icon, accent, sub, loading }) {
+  return (
+    <div className={`relative overflow-hidden rounded-2xl bg-white border border-gray-100 shadow-sm p-5`}>
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{label}</p>
+          {loading
+            ? <Shimmer h="h-10" w="w-20" cls="mt-2" />
+            : <p className={`text-4xl font-bold mt-1 ${accent}`}>{value ?? 0}</p>
+          }
+          {sub && !loading && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+        </div>
+        <div className={`p-3 rounded-xl`} style={{ backgroundColor: `${accent.includes('red') ? '#fef2f2' : accent.includes('yellow') || accent.includes('amber') ? '#fffbeb' : accent.includes('green') || accent.includes('emerald') ? '#f0fdf4' : '#eef2ff'}` }}>
+          <Icon size={20} className={accent} />
+        </div>
+      </div>
+      {/* Subtle accent strip at bottom */}
+      <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${accent.includes('red') ? 'bg-red-400' : accent.includes('yellow') || accent.includes('amber') ? 'bg-amber-400' : accent.includes('green') || accent.includes('emerald') ? 'bg-emerald-400' : 'bg-indigo-400'}`} />
+    </div>
+  )
+}
+
+// ── Action Row (one complaint) ────────────────────────────────
+function ActionRow({ c, onView, idx }) {
+  const isHigh = c.urgency === 'High'
+  return (
+    <div
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors hover:bg-gray-50 cursor-pointer group
+        ${idx > 0 ? 'border-t border-gray-100' : ''}
+        ${isHigh ? 'bg-red-50/60 hover:bg-red-50' : ''}`}
+      onClick={() => onView(c._id)}
+    >
+      {/* Dept icon */}
+      <div className="text-xl w-8 shrink-0 text-center select-none" title={c.category}>
+        {DEPT_ICON[c.category] ?? '📋'}
+      </div>
+
+      {/* Main info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-semibold text-sm text-gray-800">{c.category}</span>
+          {/* Urgency pill */}
+          <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${URGENCY_STYLE[c.urgency] ?? ''}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${URGENCY_DOT[c.urgency] ?? 'bg-gray-400'}`} />
+            {c.urgency}
+          </span>
+        </div>
+        <p className="text-xs text-gray-400 mt-0.5 truncate" title={c.description}>
+          {c.description
+            ? c.description.slice(0, 70) + (c.description.length > 70 ? '…' : '')
+            : c.voiceNoteUrl ? '🎙 Voice note attached' : 'No description'}
+        </p>
+      </div>
+
+      {/* Status + time */}
+      <div className="shrink-0 text-right flex flex-col items-end gap-1">
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[c.status] ?? 'bg-gray-100 text-gray-500'}`}>
+          {c.status}
+        </span>
+        <span className="text-xs text-gray-400 whitespace-nowrap" title={shortDateTime(c.createdAt)}>
+          {relativeTime(c.createdAt)}
+        </span>
+      </div>
+
+      {/* Arrow */}
+      <ArrowRight size={14} className="text-gray-300 group-hover:text-indigo-400 shrink-0 transition-colors" />
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Dashboard
+// ═══════════════════════════════════════════════════════════════
 export default function Dashboard() {
-  const [stats, setStats]             = useState({ total: 0, pending: 0, inProgress: 0, resolved: 0, highUrgency: 0 })
+  const [stats, setStats]         = useState({
+    total: 0, pending: 0, inProgress: 0, resolved: 0,
+    highUrgency: 0, pendingHighUrgency: 0, highUrgencyByDept: [],
+  })
   const [recent, setRecent]           = useState([])
   const [mapComplaints, setMapComplaints] = useState([])
   const [loading, setLoading]         = useState(true)
@@ -56,15 +155,15 @@ export default function Dashboard() {
       setLoading(true)
       const [statsRes, complaintsRes] = await Promise.all([
         api.get('/complaints/stats'),
-        api.get('/complaints?limit=50&sortBy=createdAt'), // top-50 for the recent table
+        api.get('/complaints?limit=50&sortBy=createdAt'),
       ])
 
-      // FIX: read .totals, not the root of the response
-      setStats(statsRes?.totals || { total: 0, pending: 0, inProgress: 0, resolved: 0, highUrgency: 0 })
+      setStats({
+        ...(statsRes?.totals || { total: 0, pending: 0, inProgress: 0, resolved: 0, highUrgency: 0, pendingHighUrgency: 0 }),
+        highUrgencyByDept: statsRes?.highUrgencyByDept || [],
+      })
 
-      // /complaints returns { data: [...], pagination: {...} } via updated api.js interceptor
       const list = Array.isArray(complaintsRes) ? complaintsRes : (complaintsRes?.data || [])
-      // Prioritise High urgency in the "action required" table
       const active       = list.filter(c => c.status !== 'Resolved' && c.status !== 'Rejected')
       const highPriority = active.filter(c => c.urgency === 'High')
       const others       = active.filter(c => c.urgency !== 'High')
@@ -77,7 +176,6 @@ export default function Dashboard() {
     }
   }, [])
 
-  // ── Fetch map markers for the current viewport ─────────────────
   const fetchMapData = useCallback(async () => {
     if (!mapRef.current) return
     try {
@@ -89,10 +187,7 @@ export default function Dashboard() {
       const data = await api.get(
         `/complaints/map?swLat=${sw.lat()}&swLng=${sw.lng()}&neLat=${ne.lat()}&neLng=${ne.lng()}`
       )
-      const complaints = data || []
-      setMapComplaints(complaints)
-
-
+      setMapComplaints(data || [])
     } catch (error) {
       console.error('[Dashboard] fetchMapData failed:', error)
     } finally {
@@ -102,140 +197,191 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData()
-    // Poll every 60 seconds. A future upgrade would replace this with socket.io events.
     const interval = setInterval(fetchDashboardData, 60_000)
     return () => clearInterval(interval)
   }, [fetchDashboardData])
 
-  const onMapLoad = useCallback((map) => {
-    mapRef.current = map
-    // Fetch initial map data once the map is mounted
-    fetchMapData()
-  }, [fetchMapData])
+  const onMapLoad      = useCallback(map => { mapRef.current = map; fetchMapData() }, [fetchMapData])
+  const onMapUnmount   = useCallback(() => { mapRef.current = null }, [])
+  const onBoundsChanged = useCallback(() => fetchMapData(), [fetchMapData])
 
-  const onMapUnmount = useCallback(() => {
-    mapRef.current = null
-  }, [])
+  const resRate = stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0
 
-  // Re-fetch map pins whenever the officer pans or zooms
-  const onBoundsChanged = useCallback(() => {
-    fetchMapData()
-  }, [fetchMapData])
-
-  const statsCards = [
-    { label: 'Total Complaints', value: stats.total,       color: '' },
-    { label: 'Pending',          value: stats.pending,     color: 'text-red-600' },
-    { label: 'In Progress',      value: stats.inProgress,  color: 'text-yellow-600' },
-    { label: 'Resolved',         value: stats.resolved,    color: 'text-green-600' },
+  const kpiCards = [
+    { label: 'Total Complaints', value: stats.total,       accent: 'text-indigo-600', icon: BarChart2, sub: `${resRate}% resolved` },
+    { label: 'Pending',          value: stats.pending,     accent: 'text-red-500',    icon: AlertTriangle, sub: `${stats.pendingHighUrgency} high urgency` },
+    { label: 'In Progress',      value: stats.inProgress,  accent: 'text-amber-500',  icon: Clock, sub: 'being actioned' },
+    { label: 'Resolved',         value: stats.resolved,    accent: 'text-emerald-600',icon: CheckCircle, sub: 'all time' },
   ]
 
   return (
-    <div className="space-y-6">
-      {/* ── Header ─────────────────────────────────────── */}
-      <div className="flex justify-between items-center">
+    <div className="space-y-5 pb-10" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+
+      {/* ── Header ──────────────────────────────────────────── */}
+      <div className="flex justify-between items-start gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Main Dashboard</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Welcome back, {user?.name}. Here's the current city-wide situation.
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-sm text-gray-400 mt-0.5">
+            Welcome back, <span className="font-medium text-indigo-600">{user?.name}</span>.
+            {' '}Here's the current city-wide situation.
           </p>
         </div>
-        <Button variant="outline" onClick={fetchDashboardData} className="gap-2" disabled={loading}>
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+        <button
+          onClick={fetchDashboardData}
+          disabled={loading}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors shrink-0"
+        >
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           Refresh
-        </Button>
+        </button>
       </div>
 
-      {/* ── KPI Cards ──────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {statsCards.map(({ label, value, color }) => (
-          <Card key={label}>
-            <CardHeader><CardTitle className="text-sm text-muted-foreground">{label}</CardTitle></CardHeader>
-            <CardContent className={`text-3xl font-bold ${color}`}>
-              {loading ? '…' : value}
-            </CardContent>
-          </Card>
+      {/* ── KPI Cards ───────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {kpiCards.map(card => (
+          <KPICard key={card.label} {...card} loading={loading} />
         ))}
       </div>
 
-      {/* ── High Urgency Alert Banner ───────────────────── */}
-      {stats.highUrgency > 0 && !loading && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 flex items-center gap-3">
-          <span className="text-red-500 text-xl">⚡</span>
-          <div>
-            <span className="font-semibold text-red-700">
-              {stats.highUrgency} HIGH urgency complaint{stats.highUrgency > 1 ? 's' : ''}
-            </span>
-            <span className="text-red-600 text-sm ml-2">require immediate attention.</span>
+      {/* ── High Urgency Alert Banner ────────────────────────── */}
+      {stats.pendingHighUrgency > 0 && !loading && (
+        <div className="rounded-2xl bg-red-50 border border-red-200 p-4 flex items-start gap-3">
+          <div className="p-2 bg-red-100 rounded-xl shrink-0">
+            <Zap size={16} className="text-red-600" />
           </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-red-800">
+              {stats.pendingHighUrgency} pending High Urgency complaint{stats.pendingHighUrgency > 1 ? 's' : ''} require immediate attention
+            </p>
+            {stats.highUrgencyByDept?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {stats.highUrgencyByDept.map(d => (
+                  <span key={d.category} className="text-xs bg-red-100 border border-red-200 text-red-700 px-2 py-0.5 rounded-full font-medium">
+                    {DEPT_ICON[d.category]} {d.category}: {d.count}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => navigate('/history?urgency=High&status=Pending')}
+            className="shrink-0 text-xs font-semibold text-red-600 hover:text-red-800 transition-colors flex items-center gap-1 whitespace-nowrap"
+          >
+            View all <ArrowRight size={12} />
+          </button>
         </div>
       )}
 
-      {/* ── Recent Issues Table + Live Map ─────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Issues */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Action Required (Top Issues)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <THead>
-                <TR>
-                  <TH>Category</TH>
-                  <TH>Urgency</TH>
-                  <TH>Reported</TH>
-                  <TH>Status</TH>
-                  <TH></TH>
-                </TR>
-              </THead>
-              <TBody>
-                {loading ? (
-                  <TR><TD colSpan={5} className="text-center text-muted-foreground py-6">Loading…</TD></TR>
-                ) : recent.length === 0 ? (
-                  <TR><TD colSpan={5} className="text-center text-muted-foreground py-6">✅ No active complaints</TD></TR>
-                ) : recent.map(c => (
-                  <TR key={c._id}>
-                    <TD className="font-medium">{c.category}</TD>
-                    <TD>
-                      <Badge variant={urgencyVariant(c.urgency)}>{c.urgency}</Badge>
-                    </TD>
-                    <TD className="text-xs text-muted-foreground" title={shortDateTime(c.createdAt)}>
-                      {relativeTime(c.createdAt)}
-                    </TD>
-                    <TD>{c.status}</TD>
-                    <TD>
-                      <Button variant="outline" size="sm" onClick={() => navigate(`/complaints/${c._id}`)}>
-                        View
-                      </Button>
-                    </TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-          </CardContent>
-        </Card>
+      {/* ── Action Required + Live Map ───────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
-        {/* Live Incident Map */}
-        <Card className="h-[480px]">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Live Incident Map</CardTitle>
-              {mapLoading && <span className="text-xs text-muted-foreground animate-pulse">Updating…</span>}
+        {/* ── Action Required ─────────────────────────────── */}
+        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm flex flex-col" style={{ minHeight: '480px', maxHeight: '520px' }}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div>
+              <h3 className="font-semibold text-gray-900">⚡ Action Required</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Top active complaints, high urgency first</p>
             </div>
-          </CardHeader>
-          <CardContent>
+            <button
+              onClick={() => navigate('/history')}
+              className="text-xs font-semibold text-indigo-500 hover:text-indigo-700 flex items-center gap-1 transition-colors"
+            >
+              View all <ArrowRight size={12} />
+            </button>
+          </div>
+
+          {/* Body — scrollable */}
+          <div className="flex-1 overflow-y-auto px-2 py-2">
+            {loading ? (
+              <div className="space-y-2 px-3 py-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 py-2">
+                    <Shimmer h="h-8" w="w-8" cls="rounded-xl shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <Shimmer h="h-4" w="w-32" />
+                      <Shimmer h="h-3" w="w-48" />
+                    </div>
+                    <Shimmer h="h-6" w="w-16" cls="rounded-full shrink-0" />
+                  </div>
+                ))}
+              </div>
+            ) : recent.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full gap-3 py-12 text-gray-300">
+                <CheckCircle size={40} />
+                <p className="text-sm font-medium text-gray-400">All clear! No active complaints 🎉</p>
+              </div>
+            ) : (
+              recent.map((c, idx) => (
+                <ActionRow
+                  key={c._id}
+                  c={c}
+                  idx={idx}
+                  onView={id => navigate(`/complaints/${id}`)}
+                />
+              ))
+            )}
+          </div>
+
+          {/* Footer summary */}
+          {!loading && recent.length > 0 && (
+            <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
+              <span className="text-xs text-gray-400">
+                Showing {recent.length} active complaint{recent.length !== 1 ? 's' : ''}
+              </span>
+              <div className="flex items-center gap-3 text-xs text-gray-400">
+                {Object.entries(URGENCY_DOT).map(([level, dot]) => (
+                  <span key={level} className="flex items-center gap-1">
+                    <span className={`w-2 h-2 rounded-full ${dot}`} />
+                    {level}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Live Incident Map ────────────────────────────── */}
+        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm flex flex-col" style={{ minHeight: '480px', maxHeight: '520px' }}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+            <div>
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <MapPin size={16} className="text-indigo-500" />
+                Live Incident Map
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">Complaints in current viewport</p>
+            </div>
+            {mapLoading && (
+              <span className="text-xs text-indigo-400 animate-pulse flex items-center gap-1">
+                <RefreshCw size={11} className="animate-spin" /> Updating…
+              </span>
+            )}
+          </div>
+
+          {/* Map legend */}
+          <div className="flex items-center gap-4 px-5 py-2 border-b border-gray-50 text-xs text-gray-500 shrink-0">
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />Pending</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" />In Progress</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" />Resolved</span>
+            <span className="ml-auto text-gray-400">{mapComplaints.length} pins</span>
+          </div>
+
+          {/* Map area — fills rest of card */}
+          <div className="flex-1 overflow-hidden rounded-b-2xl">
             {loadError ? (
-              <div className="h-[380px] flex items-center justify-center bg-red-50 rounded text-red-600 font-medium text-sm">
-                Map failed to load. Verify VITE_GOOGLE_MAPS_API_KEY in your .env file.
+              <div className="h-full flex flex-col items-center justify-center gap-3 bg-red-50 text-red-600 text-sm font-medium p-6 text-center">
+                <AlertTriangle size={28} />
+                <span>Map failed to load. Check <code className="bg-red-100 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code></span>
               </div>
             ) : !import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
-              <div className="h-[380px] flex flex-col items-center justify-center bg-yellow-50 border border-yellow-200 rounded text-yellow-700 font-medium px-4 text-center gap-2">
-                <span className="text-2xl">🗺️</span>
-                <span>Google Maps API key is missing.</span>
-                <code className="text-xs bg-yellow-100 px-2 py-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code>
+              <div className="h-full flex flex-col items-center justify-center gap-3 bg-amber-50 text-amber-700 text-sm px-6 text-center">
+                <span className="text-3xl">🗺️</span>
+                <span className="font-medium">Google Maps API key missing</span>
+                <code className="text-xs bg-amber-100 px-2 py-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code>
               </div>
             ) : !isLoaded ? (
-              <div className="h-[380px] flex items-center justify-center bg-gray-50 rounded text-muted-foreground">
+              <div className="h-full flex items-center justify-center bg-gray-50 text-gray-400 text-sm">
                 Loading Map…
               </div>
             ) : (
@@ -267,18 +413,33 @@ export default function Dashboard() {
                     }}
                     onCloseClick={() => setSelectedMarker(null)}
                   >
-                    <div className="space-y-1 text-sm min-w-[160px]">
-                      <div className="font-bold">{selectedMarker.category} Issue</div>
-                      <div className="text-xs text-gray-500">{relativeTime(selectedMarker.createdAt)}</div>
-                      <div>Status: <strong>{selectedMarker.status}</strong></div>
-                      <div>Urgency: <strong>{selectedMarker.urgency}</strong></div>
-                      <div>Upvotes: {selectedMarker.upvotes ?? 0}</div>
+                    <div className="space-y-1 text-sm min-w-[170px]">
+                      <div className="font-bold text-gray-800">
+                        {DEPT_ICON[selectedMarker.category]} {selectedMarker.category}
+                      </div>
+                      <div className="text-xs text-gray-400">{relativeTime(selectedMarker.createdAt)}</div>
+                      <div className="text-xs">
+                        Status: <strong className={selectedMarker.status === 'Pending' ? 'text-red-600' : selectedMarker.status === 'Resolved' ? 'text-emerald-600' : 'text-amber-600'}>
+                          {selectedMarker.status}
+                        </strong>
+                      </div>
+                      <div className="text-xs">
+                        Urgency: <strong className={selectedMarker.urgency === 'High' ? 'text-red-600' : selectedMarker.urgency === 'Medium' ? 'text-amber-600' : 'text-emerald-600'}>
+                          {selectedMarker.urgency}
+                        </strong>
+                      </div>
+                      {selectedMarker.upvotes > 0 && (
+                        <div className="text-xs flex items-center gap-1">
+                          <TrendingUp size={10} className="text-indigo-400" />
+                          {selectedMarker.upvotes} upvote{selectedMarker.upvotes !== 1 ? 's' : ''}
+                        </div>
+                      )}
                       <div className="pt-2">
                         <Link
                           to={`/complaints/${selectedMarker._id}`}
-                          className="text-blue-600 font-medium hover:underline text-xs"
+                          className="text-indigo-600 font-semibold hover:text-indigo-800 text-xs flex items-center gap-1"
                         >
-                          View Full Details →
+                          View details <ArrowRight size={11} />
                         </Link>
                       </div>
                     </div>
@@ -286,9 +447,10 @@ export default function Dashboard() {
                 )}
               </GoogleMap>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
+
     </div>
   )
 }

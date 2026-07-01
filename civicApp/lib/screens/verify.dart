@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import 'loginpage.dart';
-import 'wrapper.dart';
-
 
 class Verify extends StatefulWidget {
   const Verify({super.key});
@@ -66,9 +63,7 @@ class _VerifyState extends State<Verify> {
   Future<void> reload() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.reloadUser();
-    if (authProvider.firebaseUser?.emailVerified == true) {
-      Get.offAll(() => const Wrapper());
-    } else {
+    if (authProvider.firebaseUser?.emailVerified != true) {
       Get.snackbar(
         'Not Verified',
         'Please verify email before reloading.',
@@ -90,7 +85,6 @@ class _VerifyState extends State<Verify> {
             onPressed: () async {
               final authProvider = Provider.of<AuthProvider>(context, listen: false);
               await authProvider.signOut();
-              Get.offAll(() => const Loginpage());
             },
           ),
         ],

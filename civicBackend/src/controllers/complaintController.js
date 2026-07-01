@@ -99,7 +99,7 @@ const toggleUpvote = async (req, res, next) => {
 
 const getStats = async (req, res, next) => {
   try {
-    const data = await complaintService.getStats(req.dbUser);
+    const data = await complaintService.getStats(req.dbUser, req.query);
     res.status(200).json({
       success: true,
       data,

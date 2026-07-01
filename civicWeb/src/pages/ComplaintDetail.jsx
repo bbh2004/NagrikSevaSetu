@@ -194,7 +194,26 @@ export default function ComplaintDetail() {
                   Citizen Description
                 </h4>
                 <div className="bg-surface p-4 rounded border border-outline-variant text-on-surface leading-relaxed whitespace-pre-wrap text-sm">
-                  {complaint.description}
+                  {complaint.description ? (
+                    complaint.description
+                  ) : complaint.voiceNoteTranscript ? (
+                    <>
+                      <div className="flex items-center gap-2 mb-2 text-primary">
+                        <Activity size={14} />
+                        <span className="text-xs font-semibold uppercase">AI Voice Transcript</span>
+                      </div>
+                      <span className="italic">"{complaint.voiceNoteTranscript}"</span>
+                    </>
+                  ) : (
+                    <span className="text-on-surface-variant italic">No description provided.</span>
+                  )}
+
+                  {complaint.voiceNoteUrl && (
+                    <div className="mt-4 pt-3 border-t border-outline-variant">
+                      <div className="text-xs text-on-surface-variant mb-2">Original Audio:</div>
+                      <audio controls src={complaint.voiceNoteUrl} className="w-full h-8" />
+                    </div>
+                  )}
                 </div>
               </div>
 

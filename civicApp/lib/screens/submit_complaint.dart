@@ -82,6 +82,10 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
     if (widget.recoveredImage != null) {
       _imageFile = widget.recoveredImage;
     }
+
+    _descController.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -386,6 +390,8 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
   Widget build(BuildContext context) {
     final isSubmitting = context.watch<ComplaintProvider>().isSubmitting;
     final isBusy = isSubmitting || _isUploadingAudio;
+    final bool hasVoice = _recordedAudioFile != null;
+    final bool hasText = _descController.text.trim().isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -418,20 +424,21 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
             ),
             const SizedBox(height: 24),
 
-            // Description field — required if no voice note, optional otherwise
+            // Description field — disabled if voice note exists
             _buildSectionLabel(
-              _recordedAudioFile != null
-                  ? 'Description (Optional — voice note recorded)'
+              hasVoice
+                  ? 'Description (Disabled — using voice note)'
                   : 'Description *',
             ),
             TextField(
               controller: _descController,
+              enabled: !hasVoice,
               maxLength: 1000,
               maxLines: 4,
               decoration: InputDecoration(
-                hintText: _recordedAudioFile != null
-                    ? 'Add extra context if needed (voice note will be transcribed by AI)'
-                    : 'Describe the issue in detail (min 10 characters) — or record a voice note instead',
+                hintText: hasVoice
+                    ? 'Clear your voice note to type a description'
+                    : 'Describe the issue in detail — or record a voice note instead',
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -529,6 +536,8 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
   }
 
   Widget _buildVoiceNoteSection() {
+    final bool hasText = _descController.text.trim().isNotEmpty;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -624,12 +633,14 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
                     ),
                   )
                 : OutlinedButton.icon(
-                    onPressed: _toggleRecording,
+                    onPressed: hasText ? null : _toggleRecording,
                     icon: const Icon(Icons.mic),
                     label: Text(
-                      _recordedAudioFile != null
-                          ? 'Re-record Voice Note'
-                          : 'Start Recording',
+                      hasText 
+                          ? 'Clear text to record voice'
+                          : _recordedAudioFile != null
+                              ? 'Re-record Voice Note'
+                              : 'Start Recording',
                     ),
                   ),
           ),

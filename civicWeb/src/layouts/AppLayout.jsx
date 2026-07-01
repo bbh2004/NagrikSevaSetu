@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Building2, BarChart3, LogOut, Lock, Building } from 'lucide-react'
+import { LayoutDashboard, Building2, BarChart3, ClipboardList, LogOut, Lock, Building } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { cn } from '../components/ui.jsx'
 
@@ -106,6 +106,18 @@ export default function AppLayout() {
               <Lock size={16} />
             </div>
           )}
+
+          {/* History */}
+          {isAuthenticated ? (
+            <NavLink to="/history" className={({ isActive }) => navClass(isActive)}>
+              <ClipboardList size={20} /> History
+            </NavLink>
+          ) : (
+            <div className="flex items-center justify-between px-4 py-2 rounded text-outline cursor-not-allowed select-none font-label-md text-label-md">
+              <div className="flex items-center gap-4"><ClipboardList size={20} /> History</div>
+              <Lock size={16} />
+            </div>
+          )}
         </nav>
       </div>
 
@@ -134,6 +146,13 @@ export default function AppLayout() {
           <NavLink to="/analytics" className={({ isActive }) => mobileNavClass(isActive)}>
             <BarChart3 size={24} />
             <span className="font-label-sm text-label-sm mt-1">Stats</span>
+          </NavLink>
+        )}
+
+        {isAuthenticated && (
+          <NavLink to="/history" className={({ isActive }) => mobileNavClass(isActive)}>
+            <ClipboardList size={24} />
+            <span className="font-label-sm text-label-sm mt-1">History</span>
           </NavLink>
         )}
       </nav>

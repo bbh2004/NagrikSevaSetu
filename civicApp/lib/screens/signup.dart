@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import 'wrapper.dart';
 
 class Signup extends StatefulWidget {
   const Signup({super.key});
@@ -109,7 +108,6 @@ class _SignupState extends State<Signup> with TickerProviderStateMixin {
           margin: const EdgeInsets.all(30), snackPosition: SnackPosition.BOTTOM);
     } else {
       // Sign-up successful — Wrapper handles navigation automatically
-      Get.offAll(() => const Wrapper());
     }
   }
 

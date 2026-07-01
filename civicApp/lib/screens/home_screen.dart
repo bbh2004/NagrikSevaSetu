@@ -519,58 +519,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       return _buildEmptyState();
                     }
 
-                    // Group by department/category
-                    final Map<String, List<Complaint>> grouped = {};
-                    for (var c in complaints) {
-                      grouped.putIfAbsent(c.category, () => []);
-                      grouped[c.category]!.add(c);
-                    }
+                    // Just sort all complaints by distance (nearest first)
+                    final sortedComplaints = _sortComplaintsByDistance(complaints);
 
                     return Column(
-                      children: grouped.entries.map((entry) {
-                        final dept = entry.key;
-                        final deptComplaints =
-                            _sortComplaintsByDistance(entry.value);
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 24, vertical: 12),
-                              child: Text(
-                                dept,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.primary,
-                                    ),
+                      children: sortedComplaints.asMap().entries.map((e) {
+                        int index = e.key;
+                        Complaint complaint = e.value;
+                        return TweenAnimationBuilder<double>(
+                          duration: Duration(milliseconds: 300 + (index * 50)), // slightly faster stagger
+                          tween: Tween(begin: 0.0, end: 1.0),
+                          builder: (context, value, child) {
+                            return Transform.translate(
+                              offset: Offset(0, 20 * (1 - value)),
+                              child: Opacity(
+                                opacity: value,
+                                child: ComplaintCard(complaint: complaint),
                               ),
-                            ),
-                            Column(
-                              children: deptComplaints.asMap().entries.map((e) {
-                                int index = e.key;
-                                Complaint complaint = e.value;
-                                return TweenAnimationBuilder<double>(
-                                  duration: Duration(
-                                      milliseconds: 300 + (index * 100)),
-                                  tween: Tween(begin: 0.0, end: 1.0),
-                                  builder: (context, value, child) {
-                                    return Transform.translate(
-                                      offset: Offset(0, 20 * (1 - value)),
-                                      child: Opacity(
-                                        opacity: value,
-                                        child: ComplaintCard(
-                                            complaint: complaint),
-                                      ),
-                                    );
-                                  },
-                                );
-                              }).toList(),
-                            ),
-                          ],
+                            );
+                          },
                         );
                       }).toList(),
                     );

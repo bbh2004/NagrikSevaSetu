@@ -167,8 +167,7 @@ class AuthProvider extends ChangeNotifier {
         await cred.user?.updateDisplayName(name);
       }
 
-      // Send email verification
-      await cred.user?.sendEmailVerification();
+      // Verify screen will automatically send the verification email upon loading.
       return null;
     } on FirebaseAuthException catch (e) {
       return _mapFirebaseAuthError(e.code);

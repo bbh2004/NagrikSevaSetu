@@ -53,27 +53,47 @@ const createComplaint = async (dbUser, firebaseUid, data) => {
  * Lists complaints with pagination and filtering.
  */
 const listComplaints = async (dbUser, query) => {
-  const { category, status, urgency, page = 1, limit = 20, sortBy = 'createdAt' } = query;
+  const {
+    category, status, urgency,
+    page = 1, limit = 20,
+    sortBy = 'createdAt',
+    order = 'desc',   // 'asc' | 'desc'
+    days,             // restrict to last N days
+    search,           // text search in description
+  } = query;
 
-  const ALLOWED_SORT_FIELDS = ['createdAt', 'upvotes', 'urgency'];
+  const ALLOWED_SORT_FIELDS = ['createdAt', 'upvotes', 'urgency', 'updatedAt'];
   const sortField = ALLOWED_SORT_FIELDS.includes(sortBy) ? sortBy : 'createdAt';
+  const sortDir   = order === 'asc' ? 1 : -1;
 
   let filter = {};
   if (category) filter.category = category;
-  
+
   if (status) {
     filter.status = status.includes(',') ? { $in: status.split(',') } : status;
   }
-  
+
   if (urgency) filter.urgency = urgency;
+
+  // Date range filter
+  if (days && days !== 'all') {
+    const since = new Date();
+    since.setDate(since.getDate() - parseInt(days, 10));
+    filter.createdAt = { $gte: since };
+  }
+
+  // Text search in description (case-insensitive regex)
+  if (search && search.trim()) {
+    filter.description = { $regex: search.trim(), $options: 'i' };
+  }
 
   filter = scopeFilterForUser(dbUser, filter);
 
-  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const skip  = (parseInt(page) - 1) * parseInt(limit);
   const total = await Complaint.countDocuments(filter);
 
   const complaints = await Complaint.find(filter)
-    .sort({ [sortField]: -1 })
+    .sort({ [sortField]: sortDir })
     .skip(skip)
     .limit(parseInt(limit))
     .populate('userId', 'name email phone')
@@ -83,8 +103,8 @@ const listComplaints = async (dbUser, query) => {
     data: complaints.map((c) => serializeComplaint(c, dbUser)),
     pagination: {
       total,
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page:       parseInt(page),
+      limit:      parseInt(limit),
       totalPages: Math.ceil(total / parseInt(limit)),
     },
   };
@@ -170,81 +190,181 @@ const toggleUpvote = async (dbUser, id) => {
     await Upvote.create({ complaintId: id, userId });
     const updated = await Complaint.findByIdAndUpdate(id, { $inc: { upvotes: 1 } }, { new: true });
     upvotes = updated.upvotes;
-
-    // Notify complaint owner
-    if (complaint.userId && !complaint.userId.equals(userId)) {
-      createNotification({
-        userId: complaint.userId,
-        complaintId: complaint._id,
-        type: 'upvote',
-        message: `Someone upvoted your complaint "${complaint.category}".`,
-      });
-    }
   }
 
   return { data: { upvotes, hasUpvoted: !existingUpvote } };
 };
 
 /**
- * Aggregates statistics for the dashboard.
+ * Aggregates statistics for the analytics dashboard.
+ * Uses a single $facet stage to run all aggregations in one query — much faster.
  */
-const getStats = async (dbUser) => {
+const getStats = async (dbUser, query = {}) => {
   const matchFilter = {};
+
+  // Role-based scoping: department staff only see their own category
   if (dbUser.role === 'department_staff' && dbUser.department) {
     matchFilter.category = dbUser.department;
+  } else if (query.dept && query.dept !== 'All') {
+    matchFilter.category = query.dept;
   }
 
-  const stats = await Complaint.aggregate([
+  // Time filter
+  if (query.days && query.days !== 'all') {
+    const daysAgo = new Date();
+    daysAgo.setDate(daysAgo.getDate() - parseInt(query.days, 10));
+    matchFilter.createdAt = { $gte: daysAgo };
+  }
+
+  // Urgency filter (for drill-down)
+  if (query.urgency && query.urgency !== 'All') {
+    matchFilter.urgency = query.urgency;
+  }
+
+  // Single facet pipeline — one round-trip to MongoDB
+  const [result] = await Complaint.aggregate([
     { $match: matchFilter },
     {
-      $group: {
-        _id: null,
-        total: { $sum: 1 },
-        pending: { $sum: { $cond: [{ $eq: ['$status', 'Pending'] }, 1, 0] } },
-        inProgress: { $sum: { $cond: [{ $eq: ['$status', 'In Progress'] }, 1, 0] } },
-        resolved: { $sum: { $cond: [{ $eq: ['$status', 'Resolved'] }, 1, 0] } },
-        rejected: { $sum: { $cond: [{ $eq: ['$status', 'Rejected'] }, 1, 0] } },
-        highUrgency: { $sum: { $cond: [{ $eq: ['$urgency', 'High'] }, 1, 0] } },
+      $facet: {
+        // Overall KPI totals
+        totals: [
+          {
+            $group: {
+              _id: null,
+              total:              { $sum: 1 },
+              pending:            { $sum: { $cond: [{ $eq: ['$status', 'Pending'] },     1, 0] } },
+              inProgress:         { $sum: { $cond: [{ $eq: ['$status', 'In Progress'] }, 1, 0] } },
+              resolved:           { $sum: { $cond: [{ $eq: ['$status', 'Resolved'] },    1, 0] } },
+              rejected:           { $sum: { $cond: [{ $eq: ['$status', 'Rejected'] },    1, 0] } },
+              highUrgency:        { $sum: { $cond: [{ $eq: ['$urgency', 'High'] },       1, 0] } },
+              pendingHighUrgency: {
+                $sum: {
+                  $cond: [{ $and: [{ $eq: ['$urgency', 'High'] }, { $eq: ['$status', 'Pending'] }] }, 1, 0]
+                }
+              },
+              totalUpvotes: { $sum: '$upvotes' },
+            },
+          },
+        ],
+
+        // Complaints grouped by category/department
+        byCategory: [
+          {
+            $group: {
+              _id:      '$category',
+              total:    { $sum: 1 },
+              resolved: { $sum: { $cond: [{ $eq: ['$status', 'Resolved'] }, 1, 0] } },
+              pending:  { $sum: { $cond: [{ $eq: ['$status', 'Pending'] },  1, 0] } },
+              high:     { $sum: { $cond: [{ $eq: ['$urgency', 'High'] },    1, 0] } },
+            },
+          },
+          { $sort: { total: -1 } },
+        ],
+
+        // Daily time series — all dates, not limited to 14 days
+        byDay: [
+          {
+            $group: {
+              _id:      { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+              count:    { $sum: 1 },
+              resolved: { $sum: { $cond: [{ $eq: ['$status', 'Resolved'] }, 1, 0] } },
+              pending:  { $sum: { $cond: [{ $eq: ['$status', 'Pending'] },  1, 0] } },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ],
+
+        // Complaints by urgency level
+        byUrgency: [
+          {
+            $group: {
+              _id:   '$urgency',
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { count: -1 } },
+        ],
+
+        // Complaints by day of week (Mon=1 ... Sun=7) for heatmap/bar
+        byWeekday: [
+          {
+            $group: {
+              _id:   { $isoDayOfWeek: '$createdAt' },
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ],
+
+        // Average resolution time for resolved complaints (in hours)
+        resolutionTime: [
+          {
+            $match: { status: 'Resolved' },
+          },
+          {
+            $project: {
+              hoursToResolve: {
+                $divide: [
+                  { $subtract: ['$updatedAt', '$createdAt'] },
+                  1000 * 60 * 60, // ms → hours
+                ],
+              },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              avgHours: { $avg: '$hoursToResolve' },
+              minHours: { $min: '$hoursToResolve' },
+              maxHours: { $max: '$hoursToResolve' },
+            },
+          },
+        ],
+
+        // High urgency pending, grouped by department
+        highUrgencyByDept: [
+          { $match: { urgency: 'High', status: 'Pending' } },
+          { $group: { _id: '$category', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+        ],
       },
     },
   ]);
 
-  const byCategory = await Complaint.aggregate([
-    { $match: matchFilter },
-    { $group: { _id: '$category', count: { $sum: 1 }, resolved: { $sum: { $cond: [{ $eq: ['$status', 'Resolved'] }, 1, 0] } } } },
-    { $sort: { count: -1 } },
-  ]);
+  const totals = result.totals[0] || {
+    total: 0, pending: 0, inProgress: 0, resolved: 0, rejected: 0,
+    highUrgency: 0, pendingHighUrgency: 0, totalUpvotes: 0,
+  };
 
-  const fourteenDaysAgo = new Date();
-  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-
-  const byDay = await Complaint.aggregate([
-    { $match: { ...matchFilter, createdAt: { $gte: fourteenDaysAgo } } },
-    {
-      $group: {
-        _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-        count: { $sum: 1 },
-        resolved: { $sum: { $cond: [{ $eq: ['$status', 'Resolved'] }, 1, 0] } },
-      },
-    },
-    { $sort: { _id: 1 } },
-  ]);
-
-  const totals = stats[0] || { total: 0, pending: 0, inProgress: 0, resolved: 0, rejected: 0, highUrgency: 0 };
+  // Build byStatus for pie chart
   const byStatus = [
-    { name: 'Pending', value: totals.pending },
+    { name: 'Pending',     value: totals.pending },
     { name: 'In Progress', value: totals.inProgress },
-    { name: 'Resolved', value: totals.resolved },
-    { name: 'Rejected', value: totals.rejected },
+    { name: 'Resolved',    value: totals.resolved },
+    { name: 'Rejected',    value: totals.rejected },
   ];
+
+  // Weekday label mapping
+  const WEEKDAY_NAMES = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const byWeekday = result.byWeekday.map(d => ({
+    day: WEEKDAY_NAMES[d._id] || `Day ${d._id}`,
+    count: d.count,
+  }));
+
+  const resolutionStats = result.resolutionTime[0] || { avgHours: 0, minHours: 0, maxHours: 0 };
 
   return {
     totals,
-    byCategory,
-    byDay,
     byStatus,
+    byCategory: result.byCategory,
+    byDay:      result.byDay,
+    byUrgency:  result.byUrgency,
+    byWeekday,
+    resolutionStats,
+    highUrgencyByDept: result.highUrgencyByDept.map(x => ({ category: x._id, count: x.count })),
   };
 };
+
 
 /**
  * Returns lightweight complaint data for map viewport rendering.
