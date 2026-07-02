@@ -65,18 +65,18 @@ class _ComplaintStatusScreenState extends State<ComplaintStatusScreen> {
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                         color: isActive
-                            ? Colors.white
+                            ? theme.colorScheme.onPrimary
                             : theme.colorScheme.onSurface,
                       ),
                       selectedColor: theme.colorScheme.primary,
-                      backgroundColor: Colors.white,
-                      checkmarkColor: Colors.white,
+                      backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                      checkmarkColor: theme.colorScheme.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                         side: BorderSide(
                           color: isActive
                               ? theme.colorScheme.primary
-                              : Colors.grey.shade200,
+                              : theme.dividerColor.withOpacity(0.1),
                         ),
                       ),
                       elevation: isActive ? 2 : 0,
@@ -162,13 +162,13 @@ class _ComplaintStatusScreenState extends State<ComplaintStatusScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color: Theme.of(context).colorScheme.errorContainer,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.error_outline_rounded,
                 size: 40,
-                color: Colors.red.shade400,
+                color: Theme.of(context).colorScheme.error,
               ),
             ),
             const SizedBox(height: 16),
@@ -177,7 +177,7 @@ class _ComplaintStatusScreenState extends State<ComplaintStatusScreen> {
               style: Theme.of(context)
                   .textTheme
                   .bodyLarge
-                  ?.copyWith(color: Colors.red.shade600),
+                  ?.copyWith(color: Theme.of(context).colorScheme.error),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -232,7 +232,7 @@ class _ComplaintStatusScreenState extends State<ComplaintStatusScreen> {
                   ? 'Try selecting a different filter above'
                   : 'Your submitted complaints will appear here',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey.shade500,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
               textAlign: TextAlign.center,
             ),
@@ -242,3 +242,4 @@ class _ComplaintStatusScreenState extends State<ComplaintStatusScreen> {
     );
   }
 }
+

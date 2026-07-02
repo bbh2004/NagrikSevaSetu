@@ -81,9 +81,9 @@ class _MapScreenState extends State<MapScreen> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.55,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -94,7 +94,7 @@ class _MapScreenState extends State<MapScreen> {
               height: 4,
               margin: const EdgeInsets.only(top: 12, bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: Theme.of(context).dividerColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -157,7 +157,7 @@ class _MapScreenState extends State<MapScreen> {
                           : '(Voice note complaint)',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             height: 1.5,
-                            color: Colors.grey.shade700,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                     ),
 
@@ -195,7 +195,7 @@ class _MapScreenState extends State<MapScreen> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontStyle: FontStyle.italic,
-                                  color: Colors.grey.shade700,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ),
@@ -329,7 +329,7 @@ class _MapScreenState extends State<MapScreen> {
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
@@ -348,7 +348,7 @@ class _MapScreenState extends State<MapScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade500,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -367,7 +367,7 @@ class _MapScreenState extends State<MapScreen> {
       ),
       floatingActionButton: FloatingActionButton.small(
         onPressed: _panToUserLocation,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         child: Icon(
           Icons.my_location_rounded,
           color: theme.colorScheme.primary,
@@ -446,3 +446,4 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 }
+

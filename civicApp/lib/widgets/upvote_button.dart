@@ -103,12 +103,12 @@ class _UpvoteButtonState extends State<UpvoteButton>
                 decoration: BoxDecoration(
                   color: isUpvoted
                       ? Theme.of(context).colorScheme.primary
-                      : Colors.grey.shade100,
+                      : Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isUpvoted
                         ? Theme.of(context).colorScheme.primary
-                        : Colors.grey.shade300,
+                        : Theme.of(context).dividerColor.withOpacity(0.1),
                     width: 1,
                   ),
                   boxShadow: isUpvoted
@@ -126,7 +126,7 @@ class _UpvoteButtonState extends State<UpvoteButton>
                 ),
                 child: Icon(
                   isUpvoted ? Icons.thumb_up : Icons.thumb_up_outlined,
-                  color: isUpvoted ? Colors.white : Colors.grey.shade600,
+                  color: isUpvoted ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurfaceVariant,
                   size: 16,
                 ),
               ),
@@ -137,3 +137,4 @@ class _UpvoteButtonState extends State<UpvoteButton>
     );
   }
 }
+

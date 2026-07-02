@@ -473,10 +473,14 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
             const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
-                color: hasVoice ? Colors.grey.shade50 : Colors.white,
+                color: hasVoice 
+                    ? theme.colorScheme.surfaceContainerHighest
+                    : theme.cardColor,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: hasVoice ? Colors.grey.shade200 : Colors.grey.shade300,
+                  color: hasVoice 
+                      ? theme.dividerColor.withOpacity(0.2) 
+                      : theme.dividerColor.withOpacity(0.1),
                 ),
               ),
               child: TextField(
@@ -490,7 +494,7 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
                       : 'Describe the issue in detail...',
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.all(16),
-                  counterStyle: TextStyle(color: Colors.grey.shade500),
+                  counterStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                 ),
               ),
             ),
@@ -500,19 +504,19 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Row(
                 children: [
-                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                  Expanded(child: Divider(color: theme.dividerColor.withOpacity(0.1))),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       'OR',
                       style: TextStyle(
-                        color: Colors.grey.shade500,
+                        color: theme.colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),
                     ),
                   ),
-                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                  Expanded(child: Divider(color: theme.dividerColor.withOpacity(0.1))),
                 ],
               ),
             ),
@@ -619,7 +623,7 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
       return Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.1)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -640,9 +644,9 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
               ),
             ),
             Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
@@ -728,9 +732,9 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _isRecording ? Colors.red.withOpacity(0.04) : Colors.white,
+        color: _isRecording ? Colors.red.withOpacity(0.04) : theme.cardColor,
         border: Border.all(
-          color: _isRecording ? Colors.red.shade300 : Colors.grey.shade300,
+          color: _isRecording ? Colors.red.shade300 : theme.dividerColor.withOpacity(0.1),
           width: _isRecording ? 2 : 1,
         ),
         borderRadius: BorderRadius.circular(16),
@@ -779,7 +783,7 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
-                        color: _isRecording ? Colors.red.shade700 : Colors.black87,
+                        color: _isRecording ? Colors.red.shade700 : theme.colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -859,3 +863,4 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen>
     return '$m:$s / 02:00';
   }
 }
+

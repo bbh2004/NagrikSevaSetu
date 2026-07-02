@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -15,12 +16,12 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _darkMode = false;
   bool _notifications = true;
 
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
+    final themeProvider = context.watch<ThemeProvider>();
     final firebaseUser = authProvider.firebaseUser;
     final userProfile = authProvider.userProfile;
     final theme = Theme.of(context);
@@ -153,9 +154,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 iconColor: const Color(0xFF5C6BC0),
                 title: 'Dark Mode',
                 subtitle: 'Switch to dark theme',
-                value: _darkMode,
+                value: themeProvider.isDarkMode,
                 onChanged: (value) {
-                  setState(() => _darkMode = value);
+                  themeProvider.setThemeMode(value ? ThemeMode.dark : ThemeMode.light);
                 },
               ),
             ]),
@@ -240,8 +241,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildSettingsCard(List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.1)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -387,3 +389,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
+

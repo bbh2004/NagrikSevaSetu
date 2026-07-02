@@ -6,7 +6,7 @@ import '../repositories/auth_repository.dart';
 
 // Must be top-level, independent function to handle background messages
 @pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('[PushNotificationService] Background message received: ${message.messageId}');
 }
 
@@ -86,7 +86,7 @@ class PushNotificationService {
     });
 
     // 4. Handle Background Messages
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
     // 5. Handle App opened from notification when app was in background
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {

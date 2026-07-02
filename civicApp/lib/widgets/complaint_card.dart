@@ -110,12 +110,12 @@ class _ComplaintCardState extends State<ComplaintCard>
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: theme.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: _isHovered 
                       ? theme.colorScheme.primary.withOpacity(0.3)
-                      : Colors.grey.shade100,
+                      : theme.dividerColor.withOpacity(0.1),
                   width: 1,
                 ),
                 boxShadow: [
@@ -191,7 +191,7 @@ class _ComplaintCardState extends State<ComplaintCard>
                           _formatRelativeTime(widget.complaint.createdAt),
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.shade400,
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -208,8 +208,8 @@ class _ComplaintCardState extends State<ComplaintCard>
                       style: theme.textTheme.bodyMedium?.copyWith(
                         height: 1.5,
                         color: widget.complaint.description.isNotEmpty
-                            ? Colors.grey.shade700
-                            : Colors.grey.shade400,
+                            ? theme.colorScheme.onSurface
+                            : theme.colorScheme.onSurfaceVariant,
                         fontStyle: widget.complaint.description.isNotEmpty
                             ? FontStyle.normal
                             : FontStyle.italic,
@@ -265,7 +265,7 @@ class _ComplaintCardState extends State<ComplaintCard>
                                   Text(
                                     widget.complaint.voiceNoteTranscript!,
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: Colors.grey.shade700,
+                                      color: theme.colorScheme.onSurfaceVariant,
                                       fontStyle: FontStyle.italic,
                                       height: 1.4,
                                     ),
@@ -297,7 +297,7 @@ class _ComplaintCardState extends State<ComplaintCard>
                             return Container(
                               height: 170,
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade50,
+                                color: theme.colorScheme.surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Center(
@@ -312,13 +312,13 @@ class _ComplaintCardState extends State<ComplaintCard>
                             return Container(
                               height: 100,
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade50,
+                                color: theme.colorScheme.surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Center(
                                 child: Icon(
                                   Icons.image_not_supported_outlined,
-                                  color: Colors.grey.shade400,
+                                  color: theme.colorScheme.onSurfaceVariant,
                                   size: 32,
                                 ),
                               ),
@@ -337,13 +337,13 @@ class _ComplaintCardState extends State<ComplaintCard>
                         Icon(
                           Icons.thumb_up_rounded,
                           size: 14,
-                          color: Colors.grey.shade400,
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 6),
                         Text(
                           '${widget.complaint.upvotes}',
                           style: TextStyle(
-                            color: Colors.grey.shade600,
+                            color: theme.colorScheme.onSurfaceVariant,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
@@ -352,7 +352,7 @@ class _ComplaintCardState extends State<ComplaintCard>
                         Text(
                           widget.complaint.upvotes == 1 ? 'upvote' : 'upvotes',
                           style: TextStyle(
-                            color: Colors.grey.shade400,
+                            color: theme.colorScheme.onSurfaceVariant,
                             fontSize: 12,
                           ),
                         ),
@@ -370,3 +370,5 @@ class _ComplaintCardState extends State<ComplaintCard>
     );
   }
 }
+
+

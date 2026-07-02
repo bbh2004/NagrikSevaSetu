@@ -16,6 +16,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../repositories/auth_repository.dart';
@@ -149,6 +150,11 @@ class AuthProvider extends ChangeNotifier {
 
   /// Signs out from Firebase Auth and Google.
   Future<void> signOut() async {
+    try {
+      await FirebaseMessaging.instance.deleteToken();
+    } catch (e) {
+      debugPrint('[AuthProvider] Could not delete FCM token: $e');
+    }
     await _googleSignIn.signOut();
     await _firebaseAuth.signOut();
     // _onAuthStateChanged fires automatically.

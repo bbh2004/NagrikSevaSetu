@@ -112,20 +112,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color: Theme.of(context).colorScheme.errorContainer,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.error_outline_rounded,
                 size: 40,
-                color: Colors.red.shade400,
+                color: Theme.of(context).colorScheme.error,
               ),
             ),
             const SizedBox(height: 16),
             Text(
               provider.errorMessage!,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.red.shade600,
+                    color: Theme.of(context).colorScheme.error,
                   ),
               textAlign: TextAlign.center,
             ),
@@ -174,7 +174,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Text(
               'You\'ll get notified when there are\nupdates on your complaints',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey.shade500,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.5,
                   ),
               textAlign: TextAlign.center,
@@ -224,11 +224,11 @@ class _NotificationTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: notification.read ? Colors.white : color.withOpacity(0.04),
+        color: notification.read ? Theme.of(context).cardColor : color.withOpacity(0.04),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: notification.read
-              ? Colors.grey.shade100
+              ? Theme.of(context).dividerColor.withOpacity(0.1)
               : color.withOpacity(0.15),
         ),
         boxShadow: [
@@ -309,7 +309,7 @@ class _NotificationTile extends StatelessWidget {
                             _formatTime(notification.createdAt),
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey.shade500,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
