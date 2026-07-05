@@ -19,6 +19,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/auth_repository.dart';
 import '../models/user_profile.dart';
 import '../core/errors/app_exception.dart';
@@ -37,14 +38,24 @@ class AuthProvider extends ChangeNotifier {
   String? _errorMessage;
   bool _isSyncing = false;
 
+  static const String _pushEnabledKey = 'push_notifications_enabled';
+  bool _pushNotificationsEnabled = true;
+
   AuthProvider({
     required FirebaseAuth firebaseAuth,
     required AuthRepository authRepository,
   })  : _firebaseAuth = firebaseAuth,
         _authRepository = authRepository {
+    _loadPreferences();
     // Listen to Firebase Auth state changes.
     // This is the primary driver of authentication state in the app.
     _firebaseAuth.authStateChanges().listen(_onAuthStateChanged);
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    _pushNotificationsEnabled = prefs.getBool(_pushEnabledKey) ?? true;
+    notifyListeners();
   }
 
   // ── Getters ───────────────────────────────────────────────────
@@ -54,6 +65,7 @@ class AuthProvider extends ChangeNotifier {
   bool get isSyncing => _isSyncing;
   User? get firebaseUser => _firebaseAuth.currentUser;
   bool get isAuthenticated => _status == AuthStatus.authenticated;
+  bool get pushNotificationsEnabled => _pushNotificationsEnabled;
 
   // ── Auth State Listener ───────────────────────────────────────
 
@@ -95,8 +107,14 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
 
       // Initialize Push Notifications now that user is fully authenticated
-      _pushNotificationService ??= PushNotificationService(authRepository: _authRepository);
-      await _pushNotificationService!.initialize();
+      if (_pushNotificationsEnabled) {
+        _pushNotificationService ??= PushNotificationService(authRepository: _authRepository);
+        await _pushNotificationService!.initialize();
+      } else {
+        try {
+          await FirebaseMessaging.instance.deleteToken();
+        } catch (_) {}
+      }
 
     } on AppException catch (e) {
       // If sync fails, the user is still Firebase-authenticated but
@@ -124,6 +142,30 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // ── Auth Actions ──────────────────────────────────────────────
+
+  /// Enables or disables device-level push notifications
+  Future<void> setPushNotificationsEnabled(bool enabled) async {
+    if (_pushNotificationsEnabled == enabled) return;
+    
+    _pushNotificationsEnabled = enabled;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_pushEnabledKey, enabled);
+
+    if (enabled) {
+      if (_status == AuthStatus.authenticated) {
+        _pushNotificationService ??= PushNotificationService(authRepository: _authRepository);
+        await _pushNotificationService!.initialize();
+      }
+    } else {
+      try {
+        await FirebaseMessaging.instance.deleteToken();
+      } catch (e) {
+        debugPrint('[AuthProvider] Could not delete FCM token: $e');
+      }
+    }
+  }
 
   /// Signs in with Google.
   /// Returns an error message string on failure, null on success.

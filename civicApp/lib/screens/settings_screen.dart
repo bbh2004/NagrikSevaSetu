@@ -16,7 +16,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _notifications = true;
 
   @override
   Widget build(BuildContext context) {
@@ -171,9 +170,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 iconColor: const Color(0xFFEF6C00),
                 title: 'Push Notifications',
                 subtitle: 'Get updates on your complaints',
-                value: _notifications,
+                value: authProvider.pushNotificationsEnabled,
                 onChanged: (value) {
-                  setState(() => _notifications = value);
+                  authProvider.setPushNotificationsEnabled(value);
                 },
               ),
             ]),
