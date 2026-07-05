@@ -7,6 +7,7 @@ The civicWeb portal is a React application built with Vite and Vanilla CSS for m
 - **Role-Based Access Control (RBAC):** Supports `admin`, `main_officer`, and `department_staff`.
 - **Live Incident Map:** Integrated with Google Maps API to visualize complaints geographically. Markers are clustered and color-coded by current grievance status.
 - **SLA & Analytics:** Dashboards for tracking pending complaints, resolution time targets, and department-wise performance metrics.
+- **Push Notification Broadcasting:** Status updates on the dashboard instantly trigger downstream Firebase Cloud Messaging (FCM) pushes to the citizen's mobile app.
 - **AI Urgency Flags:** Highlights complaints marked as "High" urgency by the backend AI (visible only to municipal staff).
 - **Voice Note Transcription:** Displays the backend-transcribed text next to voice-based complaints.
 - **Cloudinary Integration:** Supports viewing image evidence attached to complaints.

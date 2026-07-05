@@ -42,11 +42,15 @@ During Phase 2, major functional, architectural, and visual upgrades were introd
 1. **Google Sign-In Auth Migration**: Replaced the email/password authentication system entirely with Google Sign-In for app users. Removed all legacy auth screens (register, verify, reset, signup, forgot password, etc.) to streamline citizen onboarding.
 2. **Audio/Voice note Submission with Groq STT (Whisper API)**: Integrated voice note recording (up to 2 minutes) with Cloudinary signed uploads. The backend transcribes the audio using Groq Whisper API, allowing the AI model to parse voice-only complaints for automated urgency classification.
 3. **UI/UX Overhaul & Modern Design System**:
-   - Rebuilt the **Login Screen** with feature cards, soft pulsating animations, and custom vector drawing components.
+   - Rebuilt the **Login Screen** with feature cards, soft pulsating animations, and robust asset-free Base64 vectors (Google Logo).
+   - Fully functional **Dynamic Dark Mode** using Provider, saving state to SharedPreferences, and precisely applying Material 3 ColorSchemes across all widgets (Map, Cards, Forms).
    - Refined the **Home Screen Drawer** with ClipOval profile pictures, custom greeting logic, and personalized time-based messages.
    - Upgraded the **Map Screen** with custom status-colored markers, an interactive bottom sheet for complaint details, and a map legend.
    - Added card-based **Settings & Notifications** screens with grouped preference tiles, relative timestamps, and visual status badges.
    - Optimized state updates to ensure upvote counters update **optimistically and instantly** across all screens (Home, Map, and Status lists).
+4. **Bulletproof Push Notifications (FCM)**:
+   - Engineered robust FCM lifecycle management: notifications function flawlessly across Foreground, Background, and Terminated app states.
+   - Intelligent Token Lifecycle: Automatically registers device tokens on login and explicitly wipes them on logout to prevent misdirected notifications when switching accounts on the same device.
 
 ---
 

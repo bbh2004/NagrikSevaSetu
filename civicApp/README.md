@@ -9,8 +9,9 @@ A Flutter application designed for citizens to report and track civic complaints
 - **Auto GPS Logging:** Captures accurate location using `geolocator` when filing complaints.
 - **Live Maps:** Integrated Google Maps view of all complaints in the city, using custom status-colored markers (Orange: Pending, Blue: In Progress, Green: Resolved, Red: Rejected), an interactive detail bottom sheet, and an on-screen legend.
 - **Instant Upvoting:** Users can upvote existing complaints to prevent duplicate issues. The app utilizes optimistic UI state management to update upvote badges and button colors instantly without lagging.
-- **Real-time Push Notifications:** Firebase Cloud Messaging (FCM) integration for live status updates on your reported issues.
-- **Premium UI/UX:** Material 3 design featuring custom animations on the login page, custom greetings on the home dashboard, and grouped, clean list layouts on the settings and notifications screens.
+- **Real-time Push Notifications:** Bulletproof Firebase Cloud Messaging (FCM) integration handling all states (Foreground, Background, Terminated). Strict token lifecycle management guarantees correct routing even when multiple accounts share the same device.
+- **Premium UI/UX:** Material 3 design featuring custom animations, time-based greetings, and fully functional **Dynamic Dark Mode** with user preference persistence.
+- **Robust Assets:** Uses optimized Base64 in-memory images (e.g., Google Auth logo) to eliminate missing asset exceptions.
 
 ## Tech Stack
 

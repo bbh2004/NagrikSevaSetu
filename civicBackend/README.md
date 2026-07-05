@@ -20,7 +20,7 @@ civicWeb (React)    ──┘        │
 - **Google Sign-In Session Sync**: Endpoints adapted to verify Firebase Google ID tokens and sync profiles dynamically to MongoDB Atlas.
 - **Groq Whisper Audio Transcription**: Re-routed the transcription pipeline to utilize Groq Whisper API for backend-side STT parsing. Received voice complaints (Cloudinary `.m4a` / `.mp3` URLs) are sent to Groq Whisper for transcription.
 - **AI Urgency Classification**: The text transcription is automatically combined with the text description and evaluated through the LLaMA-3.1 model to determine severity categories (Admin/Backend only).
-- **Push Notification Service**: Configured FCM messaging handlers to broadcast instant status update changes (Pending -> In Progress -> Resolved) back to the reporting citizen.
+- **Push Notification Service & Token Management**: Configured FCM messaging handlers to broadcast instant status update changes (Pending -> In Progress -> Resolved) back to the reporting citizen. Exposes `/api/users/fcm-token` for precise device targeting and integrates directly with the App's token lifecycle hooks.
 
 ---
 
