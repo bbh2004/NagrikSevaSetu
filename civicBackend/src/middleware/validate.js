@@ -89,7 +89,9 @@ const createComplaintSchema = Joi.object({
     'number.max': 'Longitude must be between -180 and 180',
     'any.required': 'Longitude is required',
   }),
-  imageUrl: Joi.string().uri().optional().allow(null, ''),
+  imageUrl: Joi.string().uri().pattern(new RegExp(`^https://res\\.cloudinary\\.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/`)).optional().allow(null, '').messages({
+    'string.pattern.base': 'imageUrl must be a valid Cloudinary asset URL.',
+  }),
   voiceNoteUrl: Joi.string().uri().pattern(new RegExp(`^https://res\\.cloudinary\\.com/${process.env.CLOUDINARY_CLOUD_NAME}/video/upload/`)).optional().allow(null, '').messages({
     'string.pattern.base': 'voiceNoteUrl must be a valid Cloudinary asset URL.',
   }),

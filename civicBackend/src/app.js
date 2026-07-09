@@ -68,7 +68,9 @@ app.use(
 );
 
 // Rate Limiting: Prevents DDoS and brute-force attacks.
-// Limits each IP to 1000 requests per 15 minutes.
+// Strict limiter for state-changing operations
+const submitLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10 }); // 10/hour
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: process.env.NODE_ENV === 'development' ? 3000 : 1000, // Very high in development
@@ -80,16 +82,19 @@ const limiter = rateLimit({
   },
 });
 
-app.use('/api', limiter); // Apply ONLY to /api routes
+app.use('/api', limiter); // Apply to /api routes
+app.use('/api/complaints', (req, res, next) => {
+  if (req.method === 'POST') return submitLimiter(req, res, next);
+  next();
+});
 
 // ─── STANDARD MIDDLEWARE ──────────────────────────────────────
 
 // Morgan: HTTP request logger. Logs every request in dev mode.
-// In production, logs only errors (by convention, use 'combined' for prod logs)
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 } else {
-  app.use(morgan('combined'));
+  app.use(morgan('tiny'));
 }
 
 // Parse incoming JSON request bodies

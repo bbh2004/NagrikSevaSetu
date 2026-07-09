@@ -45,14 +45,14 @@ const syncUser = async (req, res, next) => {
     if (!user) {
       // If not found by UID, check if email exists (user recreated Firebase account)
       user = await User.findOne({ email });
-      if (user) {
-        // Re-link the new Firebase UID to the existing MongoDB user
+      if (user && user.role !== 'citizen') {
+        // Only allow re-linking for staff/admin who are strictly email-bound by admin
         user.firebaseUid = firebaseUid;
         user.name = name;
         if (phone) user.phone = phone;
         await user.save();
       } else {
-        // Completely new user
+        // Completely new user (citizens get new accounts if UID changes, preventing email takeover)
         user = await User.create({ firebaseUid, name, email, phone });
       }
     } else {
@@ -139,8 +139,6 @@ const registerFcmToken = async (req, res, next) => {
     if (!token) {
       return res.status(400).json({ success: false, message: 'FCM token is required.' });
     }
-    const User = require('../models/User');
-
     // Remove this token from ALL users to ensure it's only tied to the currently logged in user
     await User.updateMany(
       { fcmTokens: token },
@@ -150,6 +148,7 @@ const registerFcmToken = async (req, res, next) => {
     // Add it strictly to the current user
     if (!req.dbUser.fcmTokens.includes(token)) {
       req.dbUser.fcmTokens.push(token);
+      if (req.dbUser.fcmTokens.length > 5) req.dbUser.fcmTokens.shift();
       await req.dbUser.save();
     }
 

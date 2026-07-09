@@ -51,7 +51,7 @@ async function seed() {
         firebaseUser = await admin.auth().getUserByEmail(u.email);
         // Force update existing user password for security
         await admin.auth().updateUser(firebaseUser.uid, { password: tempPassword });
-        console.log(`✅ Firebase User already exists: ${u.email}. Forced password reset: ${tempPassword}`);
+        console.log(`✅ Firebase User already exists: ${u.email}. Forced password reset.`);
       } catch (err) {
         if (err.code === 'auth/user-not-found') {
           firebaseUser = await admin.auth().createUser({
@@ -59,7 +59,7 @@ async function seed() {
             password: tempPassword,
             displayName: u.name,
           });
-          console.log(`✅ Created Firebase User: ${u.email} with password: ${tempPassword}`);
+          console.log(`✅ Created Firebase User: ${u.email}. SAVE THE PASSWORD — it won't be shown again.`);
         } else {
           throw err;
         }

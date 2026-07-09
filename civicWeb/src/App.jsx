@@ -96,19 +96,18 @@ export default function App() {
                 <Route path="/admin/dashboard" element={<Dashboard />} />
                 <Route path="/admin/complaints" element={<Analytics />} />
                 <Route path="/analytics" element={<Analytics />} />
-                <Route path="/history" element={<History />} />
               </Route>
 
               {/* Department Staff Routes */}
               <Route element={<ProtectedLayout allowedRoles={["admin", "main_officer", "department_staff"]} />}>
                 <Route path="/department/:deptId/dashboard" element={<DepartmentDashboard />} />
                 <Route path="/department/:deptId/complaints" element={<Analytics />} />
-                <Route path="/history" element={<History />} />
               </Route>
 
               {/* Shared Routes */}
               <Route element={<ProtectedLayout allowedRoles={["admin", "main_officer", "department_staff"]} />}>
                 <Route path="/complaints/:complaintId" element={<ComplaintDetail />} />
+                <Route path="/history" element={<History />} />
               </Route>
             </Route>
             

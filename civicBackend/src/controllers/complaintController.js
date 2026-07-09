@@ -130,6 +130,10 @@ const getNearbyComplaints = async (req, res, next) => {
         message: 'lat, lng, and category are required parameters.',
       });
     }
+    const VALID_CATEGORIES = ['Sanitation', 'Water', 'Electrical', 'Road', 'Others'];
+    if (!VALID_CATEGORIES.includes(category)) {
+      return res.status(400).json({ success: false, message: 'Invalid category.' });
+    }
     const data = await complaintService.getNearbyComplaints(lat, lng, category, radius);
     res.status(200).json({
       success: true,

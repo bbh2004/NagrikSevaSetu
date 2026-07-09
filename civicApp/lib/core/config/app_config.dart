@@ -35,14 +35,12 @@ class AppConfig {
   static bool get isProd => env == 'prod';
 
   /// Cloudinary cloud name for direct image uploads.
-  static const String cloudinaryCloudName = String.fromEnvironment(
-    'CLOUDINARY_CLOUD_NAME',
-    defaultValue: 'dmecx8pcz',
-  );
+  static const String cloudinaryCloudName = String.fromEnvironment('CLOUDINARY_CLOUD_NAME');
 
   /// Cloudinary unsigned upload preset name.
-  static const String cloudinaryUploadPreset = String.fromEnvironment(
-    'CLOUDINARY_UPLOAD_PRESET',
-    defaultValue: 'civic_sih2025',
-  );
+  static const String cloudinaryUploadPreset = String.fromEnvironment('CLOUDINARY_UPLOAD_PRESET');
+
+  static void validate() {
+    assert(cloudinaryCloudName.isNotEmpty, 'CLOUDINARY_CLOUD_NAME must be set via --dart-define');
+  }
 }

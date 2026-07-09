@@ -22,14 +22,9 @@ const scopeFilterForUser = (dbUser, baseFilter = {}) => {
  * only staff/admin handling the complaint do.
  * Also computes `hasUpvoted` dynamically based on the requesting user.
  */
-const serializeComplaint = (complaint, dbUser) => {
+const serializeComplaint = (complaint, dbUser, hasUpvoted = false) => {
   const c = complaint.toObject ? complaint.toObject() : { ...complaint };
-  const upvotedByIds = c.upvotedBy || [];
-
-  // Compute hasUpvoted dynamically
-  c.hasUpvoted = upvotedByIds.some((id) => id.equals
-    ? id.equals(dbUser._id)
-    : String(id) === String(dbUser._id));
+  c.hasUpvoted = hasUpvoted;
 
   const canSeeReporterPII = ['admin', 'main_officer'].includes(dbUser.role) ||
     (dbUser.role === 'department_staff' && dbUser.department === c.category);
@@ -39,6 +34,17 @@ const serializeComplaint = (complaint, dbUser) => {
       ? { _id: c.userId._id, name: c.userId.name, email: c.userId.email, phone: c.userId.phone }
       : { _id: c.userId._id, name: c.userId.name }; // name only — never email/phone to the public feed
   }
+
+  // Anonymize precise location for non-authorized users (HIGH-03)
+  if (!canSeeReporterPII && c.location && c.location.coordinates) {
+    const [lng, lat] = c.location.coordinates;
+    const grid = 0.001; // roughly 111 meters
+    c.location.coordinates = [
+      Math.round(lng / grid) * grid,
+      Math.round(lat / grid) * grid
+    ];
+  }
+
   delete c.upvotedBy; // never ship the raw voter-ID list to the client
   return c;
 };

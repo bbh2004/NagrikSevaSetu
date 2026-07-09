@@ -32,7 +32,8 @@ const initializeFirebaseAdmin = () => {
 
   if (fs.existsSync(keyPath)) {
     // If the file exists, initialize using the file directly
-    const serviceAccount = require(keyPath);
+    const raw = fs.readFileSync(keyPath, 'utf8');
+    const serviceAccount = JSON.parse(raw);
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });

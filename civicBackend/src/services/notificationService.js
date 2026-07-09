@@ -50,10 +50,29 @@ const createNotification = async ({ userId, complaintId, type, message }) => {
         }
       };
       
-      await admin.messaging().sendEachForMulticast({
+      const response = await admin.messaging().sendEachForMulticast({
         tokens: user.fcmTokens,
         ...payload
       });
+
+      if (response.failureCount > 0) {
+        const failedTokens = [];
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success) {
+            const errCode = resp.error?.code;
+            if (errCode === 'messaging/invalid-registration-token' ||
+                errCode === 'messaging/registration-token-not-registered') {
+              failedTokens.push(user.fcmTokens[idx]);
+            }
+          }
+        });
+        if (failedTokens.length > 0) {
+          await User.updateOne(
+            { _id: user._id },
+            { $pull: { fcmTokens: { $in: failedTokens } } }
+          );
+        }
+      }
     }
 
     return notification;

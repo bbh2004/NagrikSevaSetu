@@ -170,11 +170,15 @@ class _AuthInterceptor extends Interceptor {
   ) async {
     // If 401, the token may have just expired. Force-refresh and retry ONCE.
     if (err.response?.statusCode == 401) {
+      if (err.requestOptions.extra['isRetry'] == true) {
+        return handler.next(err); // Prevent recursive retry
+      }
       try {
         final user = _auth.currentUser;
         if (user != null) {
           final freshToken = await user.getIdToken(true); // forceRefresh: true
           final options = err.requestOptions;
+          options.extra['isRetry'] = true;
           options.headers['Authorization'] = 'Bearer $freshToken';
           // Retry the original request with the fresh token
           final response = await _dio.fetch(options);

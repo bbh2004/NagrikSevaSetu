@@ -46,7 +46,18 @@ const createComplaint = async (dbUser, firebaseUid, data) => {
   // and use the combined text for a more accurate urgency classification.
   detectAndUpdateUrgency(savedComplaint._id.toString(), description, voiceNoteUrl || null);
 
-  return serializeComplaint(savedComplaint, dbUser);
+  User.find({ role: 'department_staff', department: category }).then(staffToNotify => {
+    staffToNotify.forEach(staff => {
+      createNotification({
+        userId: staff._id,
+        complaintId: savedComplaint._id,
+        type: 'new_complaint',
+        message: `New ${category} complaint filed in your department.`,
+      });
+    });
+  }).catch(console.error);
+
+  return serializeComplaint(savedComplaint, dbUser, false);
 };
 
 /**
@@ -62,6 +73,9 @@ const listComplaints = async (dbUser, query) => {
     search,           // text search in description
   } = query;
 
+  const safeLimit = Math.min(parseInt(limit, 10) || 20, 100);
+  const safePage = Math.max(parseInt(page, 10) || 1, 1);
+
   const ALLOWED_SORT_FIELDS = ['createdAt', 'upvotes', 'urgency', 'updatedAt'];
   const sortField = ALLOWED_SORT_FIELDS.includes(sortBy) ? sortBy : 'createdAt';
   const sortDir   = order === 'asc' ? 1 : -1;
@@ -70,7 +84,11 @@ const listComplaints = async (dbUser, query) => {
   if (category) filter.category = category;
 
   if (status) {
-    filter.status = status.includes(',') ? { $in: status.split(',') } : status;
+    const VALID_STATUSES = ['Pending', 'In Progress', 'Resolved', 'Rejected'];
+    const statuses = status.split(',').map(s => s.trim()).filter(s => VALID_STATUSES.includes(s));
+    if (statuses.length > 0) {
+      filter.status = statuses.length === 1 ? statuses[0] : { $in: statuses };
+    }
   }
 
   if (urgency) filter.urgency = urgency;
@@ -84,28 +102,35 @@ const listComplaints = async (dbUser, query) => {
 
   // Text search in description (case-insensitive regex)
   if (search && search.trim()) {
-    filter.description = { $regex: search.trim(), $options: 'i' };
+    const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    filter.description = { $regex: escapeRegex(search.trim()), $options: 'i' };
   }
 
   filter = scopeFilterForUser(dbUser, filter);
 
-  const skip  = (parseInt(page) - 1) * parseInt(limit);
+  const skip  = (safePage - 1) * safeLimit;
   const total = await Complaint.countDocuments(filter);
 
   const complaints = await Complaint.find(filter)
     .sort({ [sortField]: sortDir })
     .skip(skip)
-    .limit(parseInt(limit))
+    .limit(safeLimit)
     .populate('userId', 'name email phone')
     .lean();
 
+  const userUpvotes = await Upvote.find({
+    userId: dbUser._id,
+    complaintId: { $in: complaints.map(c => c._id) }
+  }).lean();
+  const upvotedSet = new Set(userUpvotes.map(u => String(u.complaintId)));
+
   return {
-    data: complaints.map((c) => serializeComplaint(c, dbUser)),
+    data: complaints.map((c) => serializeComplaint(c, dbUser, upvotedSet.has(String(c._id)))),
     pagination: {
       total,
-      page:       parseInt(page),
-      limit:      parseInt(limit),
-      totalPages: Math.ceil(total / parseInt(limit)),
+      page:       safePage,
+      limit:      safeLimit,
+      totalPages: Math.ceil(total / safeLimit),
     },
   };
 };
@@ -118,7 +143,13 @@ const listMyComplaints = async (dbUser) => {
     .sort({ createdAt: -1 })
     .lean();
 
-  return complaints.map((c) => serializeComplaint(c, dbUser));
+  const userUpvotes = await Upvote.find({
+    userId: dbUser._id,
+    complaintId: { $in: complaints.map(c => c._id) }
+  }).lean();
+  const upvotedSet = new Set(userUpvotes.map(u => String(u.complaintId)));
+
+  return complaints.map((c) => serializeComplaint(c, dbUser, upvotedSet.has(String(c._id))));
 };
 
 /**
@@ -133,7 +164,8 @@ const getComplaintById = async (dbUser, id) => {
     });
 
   if (!complaint) return null;
-  return serializeComplaint(complaint, dbUser);
+  const userUpvote = await Upvote.findOne({ userId: dbUser._id, complaintId: complaint._id });
+  return serializeComplaint(complaint, dbUser, !!userUpvote);
 };
 
 /**
@@ -187,9 +219,19 @@ const toggleUpvote = async (dbUser, id) => {
     const updated = await Complaint.findByIdAndUpdate(id, { $inc: { upvotes: -1 } }, { new: true });
     upvotes = updated.upvotes;
   } else {
-    await Upvote.create({ complaintId: id, userId });
-    const updated = await Complaint.findByIdAndUpdate(id, { $inc: { upvotes: 1 } }, { new: true });
-    upvotes = updated.upvotes;
+    try {
+      await Upvote.create({ complaintId: id, userId });
+      const updated = await Complaint.findByIdAndUpdate(id, { $inc: { upvotes: 1 } }, { new: true });
+      upvotes = updated.upvotes;
+      createNotification({
+        userId: updated.userId,
+        complaintId: updated._id,
+        type: 'upvote',
+        message: 'Your complaint received a new upvote.',
+      });
+    } catch (err) {
+      upvotes = complaint.upvotes;
+    }
   }
 
   return { data: { upvotes, hasUpvoted: !existingUpvote } };
@@ -397,12 +439,14 @@ const getMapComplaints = async (dbUser, query) => {
  * Performs a geospatial search for nearby complaints to prevent duplicates.
  */
 const getNearbyComplaints = async (lat, lng, category, radiusMeters = 100) => {
+  const MAX_RADIUS_METERS = 5000;
+  const radiusClamped = Math.min(parseFloat(radiusMeters) || 100, MAX_RADIUS_METERS);
   return Complaint.aggregate([
     {
       $geoNear: {
         near: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
         distanceField: 'distanceMeters',
-        maxDistance: parseFloat(radiusMeters),
+        maxDistance: radiusClamped,
         query: { category, status: { $ne: 'Resolved' } },
         spherical: true,
       },
