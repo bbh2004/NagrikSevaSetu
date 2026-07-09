@@ -5,6 +5,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "nodemon src/server.js",
+    "start:prod": "node src/server.js",
     "test": "jest --coverage --forceExit",
     "test:watch": "jest --watch",
     "test:ci": "jest --coverage --forceExit --ci --runInBand",
