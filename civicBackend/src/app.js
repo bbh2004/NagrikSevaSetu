@@ -106,6 +106,10 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 // ─── HEALTH CHECK (Public) ────────────────────────────────────
 // A simple endpoint for deployment platforms (Render, Railway)
 // to verify the server is running. No auth needed.
+app.get('/', (req, res) => {
+  res.status(200).send('NagrikSevaSetu API is live.');
+});
+
 app.get('/health', (req, res) => {
   res.status(200).json({
     success: true,
