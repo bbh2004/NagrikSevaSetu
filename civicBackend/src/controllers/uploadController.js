@@ -60,9 +60,10 @@ const getUploadSignature = (req, res, next) => {
       timestamp,
       folder,
       upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET || 'civic_sih2025',
-      resource_type: uploadType === 'audio' ? 'video' : 'image',
-      allowed_formats: uploadType === 'audio' ? allowedAudioFormats : allowedImageFormats,
     };
+    if (uploadType === 'audio') {
+      paramsToSign.allowed_formats = allowedAudioFormats;
+    }
 
     const signature = cloudinary.utils.api_sign_request(
       paramsToSign,
@@ -76,6 +77,7 @@ const getUploadSignature = (req, res, next) => {
         timestamp,
         folder,
         cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+        apiKey: process.env.CLOUDINARY_API_KEY,
         uploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET || 'civic_sih2025',
         uploadType,
         resourceType: uploadType === 'audio' ? AUDIO_RESOURCE_TYPE : 'image',
