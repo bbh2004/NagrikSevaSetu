@@ -10,7 +10,7 @@ import { toast } from '../utils/toast.js'
 import { Building } from 'lucide-react'
 
 export default function Departments() {
-  const { user, login } = useAuth()
+  const { user, login, logout } = useAuth()
   const [loadingId, setLoadingId] = useState(null)
   const [loginModal, setLoginModal] = useState({ open: false, target: null })
   const [email, setEmail]         = useState('')
@@ -79,12 +79,28 @@ export default function Departments() {
               Select your department to log in, or log in as Main Officer for full access.
             </p>
           </div>
-          {!user && (
+          {/* Show admin login for everyone EXCEPT already-logged-in admin/main_officer */}
+          {user?.role !== 'admin' && user?.role !== 'main_officer' && (
             <Button onClick={() => startLogin('admin')} disabled={isLoadingAdmin}>
               {isLoadingAdmin ? 'Logging in…' : '🏛️ Login as Main Officer'}
             </Button>
           )}
         </div>
+
+        {/* ── Citizen Session Banner ──────────────────── */}
+        {user?.role === 'citizen' && (
+          <div className="mb-4 p-3 bg-secondary-container rounded flex items-center justify-between gap-4">
+            <p className="font-body-sm text-body-sm text-on-secondary-container">
+              ⚠️ Signed in as citizen (<strong>{user.email}</strong>). Login below with department credentials to switch.
+            </p>
+            <button
+              onClick={logout}
+              className="text-on-secondary-container underline font-label-sm text-label-sm shrink-0"
+            >
+              Sign Out
+            </button>
+          </div>
+        )}
 
         {/* ── Department Cards ─────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -106,7 +122,8 @@ export default function Departments() {
                 <CardTitle>{d.name}</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col justify-center text-center">
-                {(!user || user.role === 'department_staff') && (
+                {/* Show login button unless already logged in as admin/main_officer */}
+                {user?.role !== 'admin' && user?.role !== 'main_officer' && (
                   <Button
                     size="sm"
                     variant="outline"

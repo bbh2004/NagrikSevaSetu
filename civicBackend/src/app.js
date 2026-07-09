@@ -103,6 +103,29 @@ app.use(express.json({ limit: '10kb' })); // Cap at 10kb to prevent large payloa
 // Parse URL-encoded bodies (for HTML form submissions)
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
+// ─── ROOT ROUTE ───────────────────────────────────────────────
+// Friendly info response for anyone hitting the root URL directly.
+// Prevents confusing 404s from Render health checks or browser visits.
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: '🏛️ NagrikSevaSetu API is running',
+    environment: process.env.NODE_ENV,
+    docs: {
+      health: '/health',
+      api: '/api',
+      endpoints: [
+        'POST /api/users/sync',
+        'GET  /api/users/me',
+        'GET  /api/complaints',
+        'POST /api/complaints',
+        'GET  /api/notifications',
+        'GET  /api/upload/signature',
+      ],
+    },
+  });
+});
+
 // ─── HEALTH CHECK (Public) ────────────────────────────────────
 // A simple endpoint for deployment platforms (Render, Railway)
 // to verify the server is running. No auth needed.
