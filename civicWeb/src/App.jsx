@@ -9,6 +9,7 @@ import ComplaintDetail from './pages/ComplaintDetail.jsx'
 import Analytics from './pages/Analytics.jsx'
 import History from './pages/History.jsx'
 import ChangePassword from './pages/ChangePassword.jsx'
+import NotFound from './pages/NotFound.jsx'
 // Placeholder imports, to be implemented
 // import AdminComplaints from './pages/AdminComplaints.jsx'
 // import DepartmentComplaints from './pages/DepartmentComplaints.jsx'
@@ -112,7 +113,7 @@ export default function App() {
             </Route>
             
             {/* Catch-all */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

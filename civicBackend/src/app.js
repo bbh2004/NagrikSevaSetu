@@ -42,7 +42,7 @@ app.use(helmet());
 // The Flutter app sends requests from the device's network.
 // The React web portal sends requests from the browser.
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim().replace(/\/$/, ''))
   : [/^http:\/\/localhost:\d+$/];
 
 app.use(
