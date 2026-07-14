@@ -52,7 +52,6 @@ app.use(
       if (!origin) return callback(null, true);
 
       const isAllowed = allowedOrigins.some((allowedOrigin) => {
-        if (allowedOrigin === '*') return true;
         if (allowedOrigin instanceof RegExp) {
           return allowedOrigin.test(origin);
         }

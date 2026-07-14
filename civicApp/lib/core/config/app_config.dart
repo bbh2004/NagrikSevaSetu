@@ -30,7 +30,7 @@ class AppConfig {
   static String get apiUrl {
     if (_injectedApiUrl.isNotEmpty) return _injectedApiUrl; // Physical device override
     if (isDev) return 'http://10.0.2.2:5000';               // Android emulator
-    return 'https://civic-api.onrender.com';                 // Production (Render)
+    return 'https://nagriksevasetu.onrender.com';           // Production (Render)
   }
 
   /// Current environment name. Defaults to 'dev' if not injected.
