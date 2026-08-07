@@ -39,13 +39,15 @@ export const MAP_DEFAULT_ZOOM   = 12
 export const urgencyVariant = (urgency) => {
   if (urgency === 'High')   return 'danger'
   if (urgency === 'Medium') return 'warning'
+  if (urgency === 'Low')    return 'success'
   return 'default'
 }
 
 // Status badge variant mapping
 export const statusVariant = (status) => {
   if (status === 'Resolved')    return 'success'
-  if (status === 'Rejected')    return 'danger'
+  if (status === 'Rejected')    return 'default'
   if (status === 'In Progress') return 'warning'
+  if (status === 'Pending')     return 'danger'
   return 'default'
 }

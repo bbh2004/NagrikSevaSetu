@@ -13,8 +13,8 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../services/api'
 import {
-  Card, CardHeader, CardTitle, CardContent,
-  Table, THead, TBody, TR, TH, TD, Badge, Button,
+  Card, CardContent,
+  Table, THead, TBody, TR, TH, TD, Button, Alert, Select, Badge
 } from '../components/ui.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { CATEGORIES, STATUSES, URGENCY_LEVELS } from '../constants/civic.js'
@@ -22,7 +22,7 @@ import { shortDateTime, relativeTime } from '../utils/formatDate.js'
 import { toast } from '../utils/toast.js'
 import {
   RefreshCw, Search, Filter, ChevronLeft, ChevronRight,
-  ArrowUpDown, Clock, Flame, TrendingUp, AlertTriangle, X, FileText,
+  ArrowUpDown, Clock, Flame, TrendingUp, X, FileText,
 } from 'lucide-react'
 
 // ── Design tokens (match Analytics palette) ────────────────────
@@ -44,38 +44,18 @@ const SORT_OPTIONS = [
 const PAGE_SIZES = [10, 20, 50]
 
 // ── Skeleton Row ───────────────────────────────────────────────
+const SKELETON_WIDTHS = ['60%', '80%', '45%', '55%', '30%', '70%', '65%']
 const SkeletonRow = () => (
   <TR>
-    {[1, 2, 3, 4, 5, 6].map(i => (
+    {[1, 2, 3, 4, 5, 6].map((i) => (
       <TD key={i}>
-        <div className="h-4 bg-gray-100 rounded animate-pulse" style={{ width: `${50 + Math.random() * 40}%` }} />
+        <div className="skeleton h-4 rounded" style={{ width: SKELETON_WIDTHS[(i * 3) % SKELETON_WIDTHS.length] }} />
       </TD>
     ))}
   </TR>
 )
 
-// ── Filter Chip (active filter pill) ──────────────────────────
-const FilterChip = ({ label, onRemove }) => (
-  <span className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-medium">
-    {label}
-    <button onClick={onRemove} className="hover:bg-indigo-200 rounded-full p-0.5 transition-colors">
-      <X size={10} />
-    </button>
-  </span>
-)
-
-// ── Select helper ──────────────────────────────────────────────
-const Sel = ({ value, onChange, children, cls = '' }) => (
-  <select
-    value={value}
-    onChange={e => onChange(e.target.value)}
-    className={`border border-gray-200 rounded-xl text-sm px-3 py-2 bg-white shadow-sm
-      focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 outline-none
-      text-gray-700 font-medium cursor-pointer hover:border-gray-300 transition-colors ${cls}`}
-  >
-    {children}
-  </select>
-)
+// Removed Sel and FilterChip - using Select and Badge from ui.jsx
 
 // ═══════════════════════════════════════════════════════════════
 // History Page
@@ -192,7 +172,7 @@ export default function History() {
   })
 
   return (
-    <div className="space-y-5 pb-10" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div className="space-y-5 pb-8">
 
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -208,7 +188,7 @@ export default function History() {
         <button
           onClick={fetchHistory}
           disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
         >
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
           {loading ? 'Loading…' : 'Refresh'}
@@ -238,45 +218,45 @@ export default function History() {
 
             {/* Category */}
             {isAdmin && (
-              <Sel value={category} onChange={applyFilter(setCategory)}>
+              <Select value={category} onChange={e => applyFilter(setCategory)(e.target.value)}>
                 <option value="All">All Departments</option>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </Sel>
+              </Select>
             )}
 
             {/* Status */}
-            <Sel value={status} onChange={applyFilter(setStatus)}>
+            <Select value={status} onChange={e => applyFilter(setStatus)(e.target.value)}>
               <option value="All">All Statuses</option>
               {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-            </Sel>
+            </Select>
 
             {/* Urgency */}
-            <Sel value={urgency} onChange={applyFilter(setUrgency)}>
+            <Select value={urgency} onChange={e => applyFilter(setUrgency)(e.target.value)}>
               <option value="All">All Urgency</option>
               {URGENCY_LEVELS.map(u => <option key={u} value={u}>{u}</option>)}
-            </Sel>
+            </Select>
 
             {/* Date range */}
-            <Sel value={days} onChange={applyFilter(setDays)}>
+            <Select value={days} onChange={e => applyFilter(setDays)(e.target.value)}>
               <option value="all">All Time</option>
               <option value="7">Last 7 Days</option>
               <option value="14">Last 14 Days</option>
               <option value="30">Last 30 Days</option>
               <option value="90">Last 3 Months</option>
-            </Sel>
+            </Select>
 
             {/* Sort */}
             <div className="flex items-center gap-2">
               <ArrowUpDown size={14} className="text-gray-400 shrink-0" />
-              <Sel value={sort} onChange={v => { setSort(v); setPage(1) }}>
+              <Select value={sort} onChange={e => { setSort(e.target.value); setPage(1) }}>
                 {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </Sel>
+              </Select>
             </div>
 
             {/* Rows per page */}
-            <Sel value={pageSize} onChange={v => { setPageSize(Number(v)); setPage(1) }} cls="w-20">
+            <Select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1) }} className="w-24">
               {PAGE_SIZES.map(n => <option key={n} value={n}>{n} / pg</option>)}
-            </Sel>
+            </Select>
 
             {/* Clear all */}
             {activeFilters.length > 0 && (
@@ -296,7 +276,12 @@ export default function History() {
                 <Filter size={11} /> Active:
               </span>
               {activeFilters.map((f, i) => (
-                <FilterChip key={i} label={f.label} onRemove={f.clear} />
+                <Badge key={i} variant="primary" className="pl-2.5 pr-1 py-1 gap-1 flex items-center">
+                  {f.label}
+                  <button onClick={f.clear} className="hover:bg-primary-container/20 rounded-full p-0.5 transition-colors">
+                    <X size={10} />
+                  </button>
+                </Badge>
               ))}
             </div>
           )}
@@ -320,11 +305,17 @@ export default function History() {
 
       {/* ── Error state ─────────────────────────────────────── */}
       {error && !loading && (
-        <div className="rounded-xl bg-red-50 border border-red-200 p-4 flex items-center gap-3 text-red-700">
-          <AlertTriangle size={18} />
-          <span className="text-sm">{error}</span>
-          <button onClick={fetchHistory} className="ml-auto text-xs underline">Retry</button>
-        </div>
+        <Alert
+          variant="error"
+          title="Failed to load complaints"
+          action={
+            <button onClick={fetchHistory} className="text-xs font-semibold underline">
+              Retry
+            </button>
+          }
+        >
+          {error}
+        </Alert>
       )}
 
       {/* ── Table ───────────────────────────────────────────── */}

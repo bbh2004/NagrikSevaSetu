@@ -21,7 +21,11 @@ import {
 import { useAuth } from '../context/AuthContext.jsx'
 import { toast } from '../utils/toast.js'
 import {
-  TrendingUp, TrendingDown, Clock, AlertTriangle,
+  Card, CardHeader, CardTitle, CardContent,
+  StatCard, Alert, SkeletonBlock, Select,
+} from '../components/ui.jsx'
+import {
+  TrendingUp, Clock, AlertTriangle,
   CheckCircle, BarChart2, RefreshCw, Filter,
 } from 'lucide-react'
 
@@ -65,62 +69,20 @@ const TOOLTIP_STYLE = {
   cursor: { fill: 'rgba(99,102,241,0.06)' },
 }
 
-// ── Skeleton Loader ────────────────────────────────────────────
-const Skeleton = ({ h = 'h-64', cls = '' }) => (
-  <div className={`${h} ${cls} rounded-xl bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 animate-pulse`} />
-)
-
-// ── KPI Card ───────────────────────────────────────────────────
-function KPICard({ label, value, sub, color, icon: Icon, trend, loading }) {
-  return (
-    <div className={`relative overflow-hidden rounded-2xl p-5 shadow-sm border border-gray-100 bg-white`}>
-      <div className="flex justify-between items-start">
-        <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{label}</p>
-          {loading
-            ? <div className="mt-2 h-9 w-20 rounded-lg bg-gray-100 animate-pulse" />
-            : <p className={`mt-1 text-4xl font-bold ${color}`}>{value ?? '—'}</p>
-          }
-          {sub && !loading && <p className="mt-1 text-xs text-gray-400">{sub}</p>}
-        </div>
-        <div className={`p-3 rounded-xl bg-opacity-10`} style={{ backgroundColor: `${color.replace('text-', '')}20` }}>
-          <Icon size={20} className={color} />
-        </div>
-      </div>
-      {trend !== undefined && !loading && (
-        <div className="mt-3 flex items-center gap-1 text-xs">
-          {trend >= 0
-            ? <TrendingUp size={13} className="text-emerald-500" />
-            : <TrendingDown size={13} className="text-red-400" />}
-          <span className={trend >= 0 ? 'text-emerald-600' : 'text-red-500'}>
-            {Math.abs(trend)}% vs last period
-          </span>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── Section Card wrapper ───────────────────────────────────────
+// ── Chart Card wrapper (using design system Card) ────────────────────────────────
 function ChartCard({ title, sub, children, loading, className = '' }) {
   return (
-    <div className={`rounded-2xl bg-white shadow-sm border border-gray-100 p-5 ${className}`}>
-      <div className="mb-4">
-        <h3 className="font-semibold text-gray-800">{title}</h3>
+    <Card className={className}>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
         {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
-      </div>
-      {loading ? <Skeleton /> : children}
-    </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? <SkeletonBlock className="h-64 rounded-xl" /> : children}
+      </CardContent>
+    </Card>
   )
 }
-
-// ── Custom Donut Label ─────────────────────────────────────────
-const DonutLabel = ({ cx, cy, label, value }) => (
-  <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle">
-    <tspan x={cx} dy="-8" fontSize="28" fontWeight="700" fill="#1e293b">{value}</tspan>
-    <tspan x={cx} dy="22" fontSize="11" fill="#94a3b8">{label}</tspan>
-  </text>
-)
 
 // ── No Data placeholder ────────────────────────────────────────
 const NoData = ({ msg = 'No data for the selected filters' }) => (
@@ -210,6 +172,8 @@ export default function Analytics() {
     return `${(h / 24).toFixed(1)}d`
   }, [data])
 
+  const totals = useMemo(() => data?.totals || {}, [data])
+
   // Radar data for dept comparison
   const radarData = useMemo(() => {
     return DEPT_NAMES.map(d => {
@@ -222,39 +186,12 @@ export default function Analytics() {
     })
   }, [data])
 
-  // ── Filter bar ──────────────────────────────────────────────
-  const selectCls = `
-    border border-gray-200 rounded-xl text-sm px-3 py-2 bg-white shadow-sm
-    focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 outline-none
-    text-gray-700 font-medium cursor-pointer hover:border-gray-300 transition-colors
-  `
-
-  // ── Error state ─────────────────────────────────────────────
-  if (error && !loading) return (
-    <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
-      <AlertTriangle size={40} className="text-amber-400" />
-      <div>
-        <p className="font-semibold text-gray-700">Could not load analytics</p>
-        <p className="text-sm text-gray-400 mt-1">{error}</p>
-      </div>
-      <button
-        onClick={fetchAnalytics}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
-      >
-        <RefreshCw size={14} /> Retry
-      </button>
-    </div>
-  )
-
-  const totals = data?.totals || {}
-
   return (
-    <div className="space-y-6 pb-10" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-
-      {/* ── Header + Filters ────────────────────────────────── */}
+    <div className="space-y-6">
+      {/* ── Header + Filters ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+          <h1 className="text-xl font-bold text-gray-900">Analytics</h1>
           <p className="text-sm text-gray-400 mt-0.5">
             {isAdmin ? 'City-wide interactive civic data dashboard' : `${user?.deptCategory} department analytics`}
           </p>
@@ -265,27 +202,27 @@ export default function Analytics() {
             <Filter size={13} /> Filters:
           </div>
 
-          <select value={days} onChange={e => setDays(e.target.value)} className={selectCls}>
+          <Select value={days} onChange={e => setDays(e.target.value)}>
             <option value="7">Last 7 Days</option>
             <option value="14">Last 14 Days</option>
             <option value="30">Last 30 Days</option>
             <option value="90">Last 3 Months</option>
             <option value="all">All Time</option>
-          </select>
+          </Select>
 
           {isAdmin && (
-            <select value={dept} onChange={e => setDept(e.target.value)} className={selectCls}>
+            <Select value={dept} onChange={e => setDept(e.target.value)}>
               <option value="All">All Departments</option>
               {DEPT_NAMES.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
+            </Select>
           )}
 
-          <select value={urgency} onChange={e => setUrgency(e.target.value)} className={selectCls}>
+          <Select value={urgency} onChange={e => setUrgency(e.target.value)}>
             <option value="All">All Urgency</option>
             <option value="High">High</option>
             <option value="Medium">Medium</option>
             <option value="Low">Low</option>
-          </select>
+          </Select>
 
           <button
             onClick={fetchAnalytics}
@@ -298,29 +235,43 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* ── KPI Cards ─────────────────────────────────────────── */}
+      {error && !loading && (
+        <Alert
+          variant="error"
+          title="Failed to load analytics"
+          action={
+            <button onClick={fetchAnalytics} className="text-xs font-semibold underline">
+              Retry
+            </button>
+          }
+        >
+          {error}
+        </Alert>
+      )}
+
+      {/* ── KPI Cards ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard
-          label="Total Complaints"  value={totals.total}
-          icon={BarChart2}          color="text-indigo-600"
+        <StatCard
+          label="Total Complaints" value={totals.total}
+          icon={BarChart2}         accent="text-indigo-600"
           sub={`${totals.highUrgency ?? 0} high urgency`}
           loading={loading}
         />
-        <KPICard
-          label="Pending"           value={totals.pending}
-          icon={AlertTriangle}      color="text-red-500"
+        <StatCard
+          label="Pending"         value={totals.pending}
+          icon={AlertTriangle}   accent="text-red-500"
           sub={`${totals.pendingHighUrgency ?? 0} high urgency pending`}
           loading={loading}
         />
-        <KPICard
-          label="Resolved"          value={totals.resolved}
-          icon={CheckCircle}        color="text-emerald-600"
+        <StatCard
+          label="Resolved"        value={totals.resolved}
+          icon={CheckCircle}     accent="text-emerald-600"
           sub={`${resRate}% resolution rate`}
           loading={loading}
         />
-        <KPICard
-          label="Avg Resolution"    value={loading ? '—' : avgHours}
-          icon={Clock}              color="text-amber-500"
+        <StatCard
+          label="Avg Resolution"  value={loading ? null : avgHours}
+          icon={Clock}           accent="text-amber-500"
           sub="time to resolve"
           loading={loading}
         />
