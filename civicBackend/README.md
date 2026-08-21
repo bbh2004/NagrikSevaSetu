@@ -4,7 +4,7 @@ Common backend for **civicApp (Flutter)** and **civicWeb (React)**.
 
 ## Architecture
 
-```
+```text
 civicApp (Flutter)  ──┐
                        ├──► civicBackend (Express) ──► MongoDB Atlas
 civicWeb (React)    ──┘        │
@@ -15,12 +15,15 @@ civicWeb (React)    ──┘        │
 
 ---
 
-## Key Phase 2 Implementations
+## Key Phase 2 & 3 Implementations
 
 - **Google Sign-In Session Sync**: Endpoints adapted to verify Firebase Google ID tokens and sync profiles dynamically to MongoDB Atlas.
 - **Groq Whisper Audio Transcription**: Re-routed the transcription pipeline to utilize Groq Whisper API for backend-side STT parsing. Received voice complaints (Cloudinary `.m4a` / `.mp3` URLs) are sent to Groq Whisper for transcription.
 - **AI Urgency Classification**: The text transcription is automatically combined with the text description and evaluated through the LLaMA-3.1 model to determine severity categories (Admin/Backend only).
 - **Push Notification Service & Token Management**: Configured FCM messaging handlers to broadcast instant status update changes (Pending -> In Progress -> Resolved) back to the reporting citizen. Exposes `/api/users/fcm-token` for precise device targeting and integrates directly with the App's token lifecycle hooks.
+- **Admin-Only Credential Management**: Moved away from generic password resets. Added robust role-based restrictions blocking department staff from changing credentials, funneling all department password resets exclusively through the Admin role via `admin.auth().updateUser`.
+- **Comprehensive Testing Suite**: Added extensive API testing with Jest and Supertest to enforce high test coverage.
+- **CI/CD & Code Quality**: Fully integrated with GitHub Actions and SonarCloud for continuous linting, testing, and deployment to Render.
 
 ---
 
@@ -74,7 +77,7 @@ npm run dev
 ```
 
 You should see:
-```
+```text
 ✅ MongoDB Connected: cluster0.xxxxx.mongodb.net
 ✅ Firebase Admin SDK Initialized
 ✅ Cloudinary Configured
@@ -84,17 +87,30 @@ You should see:
 
 ---
 
+## Code Quality & Testing
+
+This project uses Jest and Supertest for API endpoint testing and is integrated with SonarCloud CI.
+To run tests locally:
+```bash
+npm run test
+npm run test:watch  # For active development
+npm run lint
+```
+
+---
+
 ## API Reference
 
 All endpoints are prefixed with `/api/`. All protected routes require:
-```
+```text
 Authorization: Bearer <firebase-id-token>
 ```
 
 ### Health Check
 | Method | Route | Auth | Description |
 |--------|-------|------|-------------|
-| `GET` | `/health` | None | Server health check |
+| `GET` | `/`       | None | Root live check (Render health check) |
+| `GET` | `/health` | None | Detailed server health check |
 
 ---
 
@@ -103,6 +119,7 @@ Authorization: Bearer <firebase-id-token>
 |--------|-------|------|-------------|
 | `POST` | `/api/users/sync` | ✅ Any | Create/update user after Google Sign-In |
 | `GET` | `/api/users/me` | ✅ Any | Get current user profile |
+| `POST` | `/api/users/admin/change-dept-password` | ✅ Admin | Reset a department's password |
 
 #### POST /api/users/sync
 Call this immediately after every Firebase Google sign-in. Creates user in MongoDB if new, or updates profile info.
@@ -164,7 +181,7 @@ Call this immediately after every Firebase Google sign-in. Creates user in Mongo
 
 ## Folder Structure
 
-```
+```text
 civicBackend/
 ├── src/
 │   ├── config/

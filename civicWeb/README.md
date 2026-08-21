@@ -11,15 +11,18 @@ The civicWeb portal is a React application built with Vite and Vanilla CSS for m
 - **AI Urgency Flags:** Highlights complaints marked as "High" urgency by the backend AI (visible only to municipal staff).
 - **Voice Note Transcription:** Displays the backend-transcribed text next to voice-based complaints.
 - **Cloudinary Integration:** Supports viewing image evidence attached to complaints.
-- **Modern Responsive Design:** Re-coded styles for improved visual presentation and mobile adaptability.
+- **Secure Password Management:** Admin-only interface for modifying credentials. Uses Firebase Client SDK for secure self-reauthentication and restricted API routes for department resets. Department users are strictly blocked with an Access Denied view.
+- **Modern Responsive Design:** Re-coded styles for improved visual presentation and mobile adaptability, with custom UI/UX overhaul.
 
 ## Tech Stack
 
 - **Framework:** React + Vite
-- **Styling:** Vanilla CSS (curated HSL palettes, cards, modern grids)
+- **Styling:** Tailwind CSS / Vanilla CSS (curated HSL palettes, cards, modern grids)
 - **Maps:** `@react-google-maps/api`
 - **Charts:** Recharts
 - **State/API:** React Context + Axios interceptors for authentication syncing
+- **Testing:** Playwright (End-to-End testing)
+- **Linting:** ESLint
 
 ## Architecture & Data Flow
 
@@ -47,7 +50,14 @@ Ensure you have the following keys configured:
 - `VITE_GOOGLE_MAPS_API_KEY` (Required for the live incident map)
 - `VITE_CLOUDINARY_CLOUD_NAME` & `VITE_CLOUDINARY_UPLOAD_PRESET`
 
-### 3. Run Development Server
+### 3. Code Quality & Testing
+The repository is integrated with a central CI/CD pipeline running SonarCloud and Playwright. To test locally:
+```bash
+npm run lint
+npx playwright test
+```
+
+### 4. Run Development Server
 ```bash
 npm run dev
 ```

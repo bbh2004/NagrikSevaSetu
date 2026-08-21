@@ -54,6 +54,21 @@ During Phase 2, major functional, architectural, and visual upgrades were introd
 
 ---
 
+## 🚀 Key Phase 3 Implementations & CI/CD
+
+During the latest phase, we focused on code quality, testing, automated deployments, and a complete UI overhaul:
+
+1. **Full-Stack CI/CD Pipeline**: GitHub Actions workflow that automatically lints, tests, and deploys the system.
+2. **SonarCloud Integration**: Automated code quality and security scanning across all three modules (Mobile, Web, Backend).
+3. **Comprehensive Test Suites**:
+   - **Backend**: Unit and integration tests using Jest and Supertest.
+   - **Web**: End-to-end (E2E) testing using Playwright with mocked Firebase environments.
+   - **Mobile**: Widget and integration tests using `flutter_test` and `mockito`.
+4. **Automated Deployments**: Continuous deployment to Render (Backend) and Vercel (Web) upon successful CI pipeline execution on the `main` branch.
+5. **Web Portal UI/UX Overhaul**: Significant visual upgrades to the React dashboard with modern grids, cards, Tailwind CSS upgrades, and improved responsive layouts.
+
+---
+
 ## ✨ Features
 
 ### 🌟 Core Capabilities
@@ -104,9 +119,10 @@ A comprehensive, role-based dashboard for municipal authorities to efficiently m
 
 ### Key Features
 
-#### 👥 Department-wise Authentication
+#### 👥 Department-wise Authentication & Security
 - Separate login portals for each department (Water, Sanitation, Electrical, Roads & Infrastructure, Public Health).
 - **Admin (Main Officer)** account with full system access.
+- **Secure Password Management**: Admins can securely change their own passwords (enforced by Firebase reauthentication) and reset department credentials. Department staff access to credential modification is strictly blocked.
 
 #### 🤖 AI-based Urgency Detection
 - Intelligent analysis of complaint text and images.

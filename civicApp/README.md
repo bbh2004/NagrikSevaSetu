@@ -4,7 +4,7 @@ A Flutter application designed for citizens to report and track civic complaints
 
 ## Features
 
-- **Google Sign-In Authentication:** Simplified onboarding via Google Login. Removes legacy email/password authentication entirely.
+- **Google Sign-In Authentication:** Simplified onboarding via Google Login. Removes legacy email/password authentication and reset flows entirely to complement the admin-only central password policy.
 - **Complaint Submission:** Add text descriptions (minimum 10 characters) OR record **Voice Notes** (max 2 minutes) along with mandatory photo evidence.
 - **Auto GPS Logging:** Captures accurate location using `geolocator` when filing complaints.
 - **Live Maps:** Integrated Google Maps view of all complaints in the city, using custom status-colored markers (Orange: Pending, Blue: In Progress, Green: Resolved, Red: Rejected), an interactive detail bottom sheet, and an on-screen legend.
@@ -21,6 +21,7 @@ A Flutter application designed for citizens to report and track civic complaints
 - **Location & Maps:** `geolocator`, `google_maps_flutter`
 - **Media Uploads:** `image_picker`, `record` (for voice notes), Cloudinary signed uploads via backend
 - **API Client:** Clean Architecture implementation with a central `ApiClient` handling request-response interceptors and repository-level state sync.
+- **Testing:** `flutter_test`, `mockito`, and integration tests.
 
 ## Getting Started
 
@@ -52,7 +53,14 @@ Example for launching with a custom defined API URL:
 flutter run --dart-define=API_URL=http://<YOUR_IP>:5000
 ```
 
-### 6. Run the App
+### 6. Code Quality & Testing
+The project is integrated with a central CI/CD pipeline. Before committing, ensure the code passes static analysis and tests:
+```bash
+flutter analyze
+flutter test
+```
+
+### 7. Run the App
 ```bash
 flutter run
 ```
