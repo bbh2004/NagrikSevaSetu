@@ -111,22 +111,32 @@ const getMyProfile = async (req, res, next) => {
   }
 };
 
-const changePasswordDone = async (req, res, next) => {
+const changeDeptPassword = async (req, res, next) => {
   try {
-    const { newPassword } = req.body;
-    if (!newPassword || newPassword.length < 6) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+    // Only Admin can reset department passwords
+    if (req.dbUser.role !== 'admin' && req.dbUser.role !== 'main_officer') {
+      return res.status(403).json({ success: false, message: 'Forbidden. Only administrators can perform this action.' });
     }
 
-    await admin.auth().updateUser(req.dbUser.firebaseUid, {
+    const { deptCategory, newPassword } = req.body;
+    if (!deptCategory || !newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Invalid department category or password too short (min 6 chars).' });
+    }
+
+    // Find the department staff user
+    const deptUser = await User.findOne({ department: deptCategory, role: 'department_staff' });
+    if (!deptUser) {
+      return res.status(404).json({ success: false, message: `No staff account found for ${deptCategory} department.` });
+    }
+
+    // Update their password directly via Firebase Admin SDK
+    await admin.auth().updateUser(deptUser.firebaseUid, {
       password: newPassword,
     });
 
-    req.dbUser.mustChangePassword = false;
-    await req.dbUser.save();
     res.status(200).json({
       success: true,
-      message: 'Password successfully changed.',
+      message: `${deptCategory} department password reset successfully.`,
     });
   } catch (error) {
     next(error);
@@ -161,4 +171,4 @@ const registerFcmToken = async (req, res, next) => {
   }
 };
 
-module.exports = { syncUser, getMyProfile, changePasswordDone, registerFcmToken };
+module.exports = { syncUser, getMyProfile, changeDeptPassword, registerFcmToken };

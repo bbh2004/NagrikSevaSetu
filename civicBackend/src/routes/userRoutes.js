@@ -4,7 +4,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { syncUser, getMyProfile, changePasswordDone, registerFcmToken } = require('../controllers/userController');
+const { syncUser, getMyProfile, changeDeptPassword, registerFcmToken } = require('../controllers/userController');
 const { verifyFirebaseToken } = require('../middleware/auth');
 const { validate, schemas } = require('../middleware/validate');
 
@@ -16,9 +16,9 @@ router.post('/sync', verifyFirebaseToken, validate(schemas.syncUser), syncUser);
 // Get current user's profile
 router.get('/me', verifyFirebaseToken, getMyProfile);
 
-// POST /api/users/me/change-password
-// Acknowledge staff password rotation
-router.post('/me/change-password', verifyFirebaseToken, changePasswordDone);
+// POST /api/users/admin/change-dept-password
+// Allow admin to reset a department password
+router.post('/admin/change-dept-password', verifyFirebaseToken, changeDeptPassword);
 
 // POST /api/users/fcm-token
 // Register a device FCM token for push notifications

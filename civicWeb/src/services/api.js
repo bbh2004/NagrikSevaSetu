@@ -63,9 +63,7 @@ const buildResponseInterceptor = () => [
       console.warn('[API Interceptor] 401 Unauthorized. Forcing logout...')
       try { await firebaseSignOut(auth) } catch (e) { console.error('Failed to sign out', e) }
     }
-    if (error.response?.status === 403 && error.response?.data?.code === 'PASSWORD_CHANGE_REQUIRED') {
-      if (window.location.pathname !== '/change-password') window.location.href = '/change-password'
-    }
+
     const message = error.response?.data?.message || error.message || 'An unexpected error occurred'
     return Promise.reject(new Error(message))
   }

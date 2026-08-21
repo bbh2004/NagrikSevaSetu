@@ -185,6 +185,20 @@ export default function AppLayout() {
               </p>
             </div>
           </div>
+          {/* Change Password */}
+          <NavLink
+            to="/change-password?voluntary=true"
+            className={({ isActive }) => cn(
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium group",
+              isActive 
+                ? "bg-primary/10 text-primary font-semibold"
+                : "text-gray-600 hover:bg-gray-100/70"
+            )}
+            onClick={() => setMobileOpen(false)}
+          >
+            <Lock size={16} className="flex-shrink-0" />
+            Change Password
+          </NavLink>
           {/* Logout */}
           <button
             onClick={handleLogout}
